@@ -1,0 +1,24 @@
+# Sink Ticks Requirements
+# Phase 7B: Data Lake Sinks
+
+# Core dependencies
+pydantic==2.9.2
+nats-py==2.6.0
+redis==5.0.8
+boto3==1.35.14
+deltalake==0.20.2
+pandas==2.2.2
+pyarrow==17.0.0
+python-dateutil==2.9.0.post0
+tenacity==8.5.0
+requests==2.32.3
+pyyaml==6.0.2
+
+# Web framework
+fastapi==0.115.2
+uvicorn[standard]==0.30.6
+prometheus-client==0.21.0
+
+# Utilities
+python-json-logger==2.0.7
+aiohttp==3.10.5

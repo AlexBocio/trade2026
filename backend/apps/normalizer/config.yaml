@@ -1,0 +1,87 @@
+# Data Normalizer Configuration
+# Phase 3 - Data Storage & Normalization
+
+# Service connections
+nats_url: nats://nats:4222
+redis_host: valkey
+redis_port: 6379
+questdb_url: http://questdb:9000
+
+# Aggregation settings
+aggregation:
+  # Intervals to generate
+  intervals:
+    - 1m    # 1 minute bars
+    - 5m    # 5 minute bars
+    - 15m   # 15 minute bars
+    - 1h    # 1 hour bars
+    - 1d    # 1 day bars
+
+  # Flush incomplete bars after this many milliseconds
+  flush_timeout_ms: 120000  # 2 minutes
+
+  # Maximum bars to keep in memory
+  max_memory_bars: 10000
+
+# Storage settings
+storage:
+  # QuestDB batch size
+  batch_size: 100
+
+  # Write interval (milliseconds)
+  write_interval_ms: 5000
+
+  # Retention policies (days)
+  retention:
+    1m: 30     # Keep 1-minute bars for 30 days
+    5m: 90     # Keep 5-minute bars for 90 days
+    15m: 180   # Keep 15-minute bars for 180 days
+    1h: 365    # Keep hourly bars for 1 year
+    1d: 3650   # Keep daily bars for 10 years
+
+# Cache settings
+cache:
+  # TTL for different intervals (seconds)
+  ttl:
+    1m: 3600      # 1 hour
+    5m: 7200      # 2 hours
+    15m: 14400    # 4 hours
+    1h: 28800     # 8 hours
+    1d: 86400     # 24 hours
+
+  # Maximum cached bars per symbol
+  max_bars_per_symbol: 1000
+
+# Performance tuning
+performance:
+  # Number of worker threads
+  workers: 4
+
+  # Message batch size
+  message_batch_size: 10
+
+  # Processing timeout (seconds)
+  processing_timeout: 5
+
+# Monitoring
+monitoring:
+  # Stats update interval (seconds)
+  stats_interval: 10
+
+  # Health check interval (seconds)
+  health_check_interval: 30
+
+  # Metrics to track
+  metrics:
+    - ticks_per_second
+    - bars_per_minute
+    - storage_latency
+    - cache_hit_rate
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  outputs:
+    - console
+    - file: /var/log/normalizer/normalizer.log

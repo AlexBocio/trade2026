@@ -1,0 +1,56 @@
+# authn service configuration
+# Migrated from Trade2025 to Trade2026
+
+issuer: "authn"
+algorithm: "RS256"
+token_ttl_seconds: 3600
+grant_types:
+  - "client_credentials"
+  - "password"
+
+audiences:
+  - "trade2026"
+
+keys:
+  active_path: "/app/keys/active.json"
+  next_path: "/app/keys/next.json"
+  key_size: 2048
+
+# Service clients (list format required by authn service)
+clients:
+  - id: "srv:oms"
+    secret_env: "OMS_CLIENT_SECRET"
+    roles: ["service"]
+    tenant: "trade2026"
+    scopes:
+      - "orders:submit"
+      - "orders:cancel"
+      - "fills:read"
+      - "positions:read"
+
+  - id: "srv:risk"
+    secret_env: "RISK_CLIENT_SECRET"
+    roles: ["service"]
+    tenant: "trade2026"
+    scopes:
+      - "risk:check"
+      - "positions:read"
+      - "exposures:read"
+
+  - id: "srv:ptrc"
+    secret_env: "PTRC_CLIENT_SECRET"
+    roles: ["service"]
+    tenant: "trade2026"
+    scopes:
+      - "pnl:compute"
+      - "reports:generate"
+
+  - id: "srv:gateway"
+    secret_env: "GATEWAY_CLIENT_SECRET"
+    roles: ["service"]
+    tenant: "trade2026"
+    scopes:
+      - "data:publish"
+
+# Client secrets should be stored in environment variables
+# If not set, service will use dev fallback: "dev-secret-{client_id}"

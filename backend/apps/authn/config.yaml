@@ -1,0 +1,65 @@
+# Authentication Service Configuration
+# Manages JWT issuance, JWKS endpoint, and key rotation
+
+issuer: "https://authn.trade2025.local"
+
+# Valid audiences for issued tokens
+audiences:
+  - "oms.trade2025.local"
+  - "live-gateway.trade2025.local"
+  - "serving.trade2025.local"
+  - "risk.trade2025.local"
+
+# Token time-to-live (seconds)
+token_ttl_seconds: 900  # 15 minutes
+
+# Supported grant types
+grant_types:
+  - "client_credentials"  # Service-to-service auth
+  # - "password"          # Human auth (DEV ONLY - uncomment for testing)
+
+# JWT signing algorithm (RS256 or ES256)
+algorithm: "RS256"
+
+# Key rotation schedule (hours)
+key_rotation_hours: 168  # 1 week
+
+# Registered clients (services)
+clients:
+  - id: "srv:oms"
+    secret_env: "AUTHN_CLIENT_OMS_SECRET"
+    roles: ["oms", "order_manager"]
+    tenant: "default"
+    scopes: ["orders:write", "orders:read", "orders:cancel", "positions:read"]
+
+  - id: "srv:live_gateway"
+    secret_env: "AUTHN_CLIENT_LTG_SECRET"
+    roles: ["live_gateway", "broker"]
+    tenant: "default"
+    scopes: ["broker:submit", "broker:cancel", "marketdata:subscribe"]
+
+  - id: "srv:serving"
+    secret_env: "AUTHN_CLIENT_SERVING_SECRET"
+    roles: ["serving", "ml_inference"]
+    tenant: "default"
+    scopes: ["inference:predict", "models:read"]
+
+  - id: "srv:risk"
+    secret_env: "AUTHN_CLIENT_RISK_SECRET"
+    roles: ["risk", "risk_manager"]
+    tenant: "default"
+    scopes: ["risk:eval", "limits:read", "limits:update"]
+
+  # DEV ONLY: Human user for testing
+  - id: "user:trader1"
+    secret_env: "AUTHN_USER_TRADER1_SECRET"
+    roles: ["trader", "human"]
+    tenant: "default"
+    scopes: ["orders:write", "orders:read", "positions:read"]
+    # WARNING: In production, use proper user management with OAuth2/OIDC
+
+# Keys configuration
+keys:
+  active_path: "/app/keys/jwk_active.json"
+  next_path: "/app/keys/jwk_next.json"
+  key_size: 2048  # RSA key size (or 256 for ES256)

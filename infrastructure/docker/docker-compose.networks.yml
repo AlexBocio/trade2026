@@ -1,0 +1,50 @@
+version: '3.8'
+
+# CPGS v1.0 - Three-Lane Network Architecture
+# Trade2026 Platform Networks
+
+networks:
+  trade2026-frontend:
+    name: trade2026-frontend
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.23.0.0/16
+          gateway: 172.23.0.1
+    labels:
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.cpgs.lane=frontend"
+      - "com.trade2026.cpgs.ports=80,443,5173"
+    driver_opts:
+      com.docker.network.bridge.name: trade2026-front
+
+  trade2026-lowlatency:
+    name: trade2026-lowlatency
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/16
+          gateway: 172.22.0.1
+    labels:
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.cpgs.lane=lowlatency"
+      - "com.trade2026.cpgs.ports=8000-8199"
+    driver_opts:
+      com.docker.network.bridge.name: trade2026-lowlat
+
+  trade2026-backend:
+    name: trade2026-backend
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+          gateway: 172.21.0.1
+    labels:
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.cpgs.lane=backend"
+      - "com.trade2026.cpgs.ports=8300-8499"
+    driver_opts:
+      com.docker.network.bridge.name: trade2026-back

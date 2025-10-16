@@ -1,0 +1,269 @@
+version: '3.8'
+
+# Trade2026 Core Infrastructure Services
+# Migrated from Trade2025 - Updated paths and networks
+# CPGS v1.0 Compliant - Three-Lane Network Architecture
+# Official images from Docker Hub only
+
+networks:
+  frontend:
+    external: true
+    name: trade2026-frontend
+  lowlatency:
+    external: true
+    name: trade2026-lowlatency
+  backend:
+    external: true
+    name: trade2026-backend
+
+services:
+  # ============================================
+  # NATS - Message Streaming (JetStream enabled)
+  # Official Image: https://hub.docker.com/_/nats
+  # ============================================
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats
+    command:
+      - "-js"
+      - "-m=8222"
+    ports:
+      - "4222:4222"  # Client connections
+      - "8222:8222"  # Monitoring
+    volumes:
+      - ../../data/nats:/var/lib/nats
+    networks:
+      - lowlatency
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=nats"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=infrastructure"
+      - "com.trade2026.network.lane=lowlatency"
+
+  # ============================================
+  # Valkey - Redis-compatible cache/state store
+  # Official Image: https://hub.docker.com/r/valkey/valkey
+  # ============================================
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: valkey
+    command: ["valkey-server", "--appendonly", "yes", "--maxmemory", "2gb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - ../../data/valkey:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=valkey"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=infrastructure"
+      - "com.trade2026.network.lane=backend"
+
+  # ============================================
+  # QuestDB - Time-series database
+  # Official Image: https://hub.docker.com/r/questdb/questdb
+  # ============================================
+  questdb:
+    image: questdb/questdb:latest
+    container_name: questdb
+    ports:
+      - "9000:9000"   # HTTP API
+      - "8812:8812"   # Postgres wire protocol
+      - "9009:9009"   # InfluxDB line protocol
+    volumes:
+      - ../../data/questdb:/var/lib/questdb
+    networks:
+      - backend
+    environment:
+      - QDB_CAIRO_COMMIT_LAG=1000
+      - QDB_PG_ENABLED=true
+      - QDB_HTTP_ENABLED=true
+    # Health check disabled: curl not available in container
+    # Service confirmed working via external testing
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=questdb"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=infrastructure"
+      - "com.trade2026.network.lane=backend"
+
+  # ============================================
+  # ClickHouse - OLAP Analytics Database
+  # Official Image: https://hub.docker.com/r/clickhouse/clickhouse-server
+  # ============================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.9
+    container_name: clickhouse
+    ports:
+      - "8123:8123"   # HTTP API
+      - "9001:9000"   # Native TCP (mapped to 9001 to avoid QuestDB conflict)
+    volumes:
+      - ../../data/clickhouse:/var/lib/clickhouse
+    networks:
+      - backend
+    environment:
+      - CLICKHOUSE_DB=trade2026
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=clickhouse"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=infrastructure"
+      - "com.trade2026.network.lane=backend"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  # ============================================
+  # SeaweedFS - S3-compatible object storage
+  # Official Image: https://hub.docker.com/r/chrislusf/seaweedfs
+  # ============================================
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs
+    command:
+      - "server"
+      - "-s3"
+      - "-dir=/data"
+    ports:
+      - "8333:8333"   # S3 API
+      - "9333:9333"   # Master
+      - "8081:8080"   # Filer (mapped to 8081 to avoid conflicts)
+    volumes:
+      - ../../data/seaweed:/data
+    networks:
+      - backend
+    # Health check disabled: service binds to container IP, not localhost
+    # Service confirmed working via external testing
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=seaweedfs"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=infrastructure"
+      - "com.trade2026.network.lane=backend"
+
+  # ============================================
+  # OpenSearch - Full-text search engine
+  # Official Image: https://hub.docker.com/r/opensearchproject/opensearch
+  # ============================================
+  opensearch:
+    image: opensearchproject/opensearch:2
+    container_name: opensearch
+    ports:
+      - "9200:9200"   # REST API
+      - "9600:9600"   # Performance analyzer
+    volumes:
+      - ../../data/opensearch:/usr/share/opensearch/data
+    networks:
+      - backend
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=opensearch"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=infrastructure"
+      - "com.trade2026.network.lane=backend"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # ============================================
+  # authn - Authentication Service
+  # Built from source (official Trade2025 code)
+  # ============================================
+  authn:
+    image: localhost/authn:latest
+    container_name: authn
+    build:
+      context: ../../backend/apps/authn
+      dockerfile: Dockerfile
+    ports:
+      - "8114:8114"
+    volumes:
+      - ../../config/backend/authn:/app/config
+      - ../../secrets:/secrets
+      - ../../secrets/keys/authn:/app/keys
+    networks:
+      - frontend
+      - backend
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8114/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=authn"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=infrastructure"
+      - "com.trade2026.network.lane=frontend,backend"
+    depends_on:
+      - valkey
+
+  # ============================================
+  # OPA - Open Policy Agent (Authorization)
+  # Built from source (official Trade2025 code)
+  # ============================================
+  opa:
+    image: localhost/opa:latest
+    container_name: opa
+    build:
+      context: ../../backend/apps/opa_authorizer
+      dockerfile: Dockerfile
+    ports:
+      - "8181:8181"
+    volumes:
+      - ../../config/backend/opa:/app/policies
+    networks:
+      - frontend
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "/app/policies"
+    # Health check disabled: minimal container, no shell tools available
+    # Service confirmed working via external testing
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=opa"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=infrastructure"
+      - "com.trade2026.network.lane=frontend"

@@ -1,0 +1,247 @@
+# Multi-Exchange Configuration
+# Supports multiple exchanges simultaneously
+
+# Service connections (shared by all exchanges)
+nats_url: nats://localhost:4222
+redis_host: localhost
+redis_port: 6379
+questdb_url: http://localhost:9000
+
+# Exchange configurations
+exchanges:
+  # Tier 1 - High Volume Exchanges
+  - name: binance
+    enabled: true
+    type: spot  # spot, futures, options
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+      - SOL/USDT
+      - MATIC/USDT
+      - AVAX/USDT
+    rate_limit: 50  # requests per second
+    refresh_interval: 5
+    websocket: true
+    priority: 1  # Higher priority = more important
+
+  - name: coinbase
+    enabled: true
+    type: spot
+    symbols:
+      - BTC/USD
+      - ETH/USD
+      - SOL/USD
+      - MATIC/USD
+    rate_limit: 10
+    refresh_interval: 3
+    websocket: true
+    priority: 1
+
+  - name: kraken
+    enabled: true
+    type: spot
+    symbols:
+      - BTC/USD  # Will be converted to XBT/USD
+      - ETH/USD
+      - SOL/USD
+    rate_limit: 15
+    refresh_interval: 5
+    websocket: true
+    priority: 1
+    tier: Intermediate  # Starter, Intermediate, Pro
+
+  # Tier 2 - Important Regional/Derivatives
+  - name: bybit
+    enabled: true
+    type: spot  # Also supports futures
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+    rate_limit: 50
+    refresh_interval: 2
+    websocket: true
+    priority: 2
+
+  - name: okx
+    enabled: true
+    type: spot
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+      - SOL/USDT
+    rate_limit: 20
+    refresh_interval: 3
+    websocket: true
+    priority: 2
+
+  # Tier 3 - Additional Exchanges
+  - name: bitfinex
+    enabled: false  # Can be enabled
+    type: spot
+    symbols:
+      - BTC/USD
+      - ETH/USD
+    rate_limit: 30
+    refresh_interval: 3
+    websocket: true
+    priority: 3
+
+  - name: huobi
+    enabled: false
+    type: spot
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+    rate_limit: 10
+    refresh_interval: 5
+    websocket: true
+    priority: 3
+
+  - name: gateio
+    enabled: false
+    type: spot
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+    rate_limit: 10
+    refresh_interval: 5
+    websocket: true
+    priority: 3
+
+  - name: kucoin
+    enabled: false
+    type: spot
+    symbols:
+      - BTC/USDT
+      - ETH/USDT
+    rate_limit: 30
+    refresh_interval: 4
+    websocket: true
+    priority: 3
+
+  - name: gemini
+    enabled: false
+    type: spot
+    symbols:
+      - BTC/USD
+      - ETH/USD
+    rate_limit: 5
+    refresh_interval: 10
+    websocket: false  # REST only
+    priority: 3
+
+  # Derivatives Exchanges
+  - name: deribit
+    enabled: false
+    type: derivatives
+    symbols:
+      - BTC-PERPETUAL
+      - ETH-PERPETUAL
+    rate_limit: 20
+    refresh_interval: 2
+    websocket: true
+    priority: 2
+
+  - name: bitmex
+    enabled: false
+    type: derivatives
+    symbols:
+      - XBTUSD
+      - ETHUSD
+    rate_limit: 30
+    refresh_interval: 2
+    websocket: true
+    priority: 3
+
+# Global settings
+global:
+  # Maximum concurrent exchanges
+  max_active_exchanges: 10
+
+  # Load balancing
+  load_balance:
+    enabled: true
+    strategy: round_robin  # round_robin, priority, latency
+
+  # Failover settings
+  failover:
+    enabled: true
+    retry_attempts: 3
+    retry_delay: 5
+    backup_exchanges:
+      BTC/USDT:
+        - binance
+        - okx
+        - bybit
+      BTC/USD:
+        - coinbase
+        - kraken
+        - gemini
+
+  # Data aggregation
+  aggregation:
+    enabled: true
+    # Aggregate best bid/ask across all exchanges
+    best_price: true
+    # Volume-weighted average price
+    vwap: true
+    # Arbitrage detection
+    arbitrage_detection: true
+    arbitrage_threshold: 0.001  # 0.1%
+
+  # Symbol normalization
+  symbol_mapping:
+    # Map different exchange symbols to unified format
+    unified:
+      BTCUSD:
+        binance: BTC/USDT
+        coinbase: BTC/USD
+        kraken: XBT/USD
+        bitfinex: tBTCUSD
+      ETHUSD:
+        binance: ETH/USDT
+        coinbase: ETH/USD
+        kraken: ETH/USD
+        bitfinex: tETHUSD
+
+# Performance tuning
+performance:
+  # Connection pooling
+  connection_pool_size: 10
+
+  # Rate limiting
+  global_rate_limit: 1000  # Total requests/second across all exchanges
+
+  # Caching
+  cache_ttl: 60  # seconds
+
+  # Batch processing
+  batch_size: 100
+  batch_timeout: 1000  # milliseconds
+
+# Monitoring
+monitoring:
+  # Health check intervals
+  health_check_interval: 30  # seconds
+
+  # Metrics to track
+  metrics:
+    - latency
+    - throughput
+    - error_rate
+    - cache_hit_rate
+
+  # Alerts
+  alerts:
+    high_latency: 1000  # ms
+    high_error_rate: 0.05  # 5%
+    exchange_down: true
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  outputs:
+    - console
+    - file: /var/log/gateway/multi.log
+  per_exchange: true  # Separate log file per exchange

@@ -1,0 +1,57 @@
+# Trade2026 .gitignore
+
+# Environment variables (never commit secrets!)
+.env
+*/.env
+**/.env
+
+# Data directories (large files, persistent volumes)
+data/*
+!data/.gitignore
+
+# Secrets (API keys, certificates, etc.)
+secrets/*
+!secrets/.gitignore
+!secrets/secrets.env.template
+
+# Build artifacts
+*.pyc
+__pycache__/
+*.so
+*.egg-info/
+dist/
+build/
+*.whl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+.dockerignore
+
+# Node modules (if frontend is added)
+node_modules/
+.next/
+out/
+
+# Python virtual environments
+venv/
+env/
+.venv/

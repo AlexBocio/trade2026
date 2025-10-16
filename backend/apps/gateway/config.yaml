@@ -1,0 +1,36 @@
+# Market Gateway Configuration
+# This file configures the market data ingestion service
+
+# Exchange settings
+exchange: mock  # Changed from binance to mock to avoid API blocking
+
+# Symbols to track (CCXT format)
+symbols:
+  - BTC/USDT
+  - ETH/USDT
+
+# Data refresh interval (seconds) for REST API polling
+refresh_interval: 5
+
+# Service connections
+nats_url: nats://nats:4222
+redis_host: valkey
+redis_port: 6379
+questdb_url: http://questdb:9000
+
+# Logging
+log_level: INFO
+
+# Rate limiting
+max_requests_per_minute: 1200
+
+# WebSocket settings
+websocket:
+  enabled: true
+  reconnect_interval: 5
+  heartbeat_interval: 30
+
+# REST API fallback
+rest:
+  enabled: true
+  timeout: 10

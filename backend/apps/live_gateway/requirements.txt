@@ -1,0 +1,45 @@
+# Live Trading Gateway Requirements
+# Phase 11: Live Trading Enablement
+
+# Core
+fastapi==0.115.2
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+
+# Message Bus
+nats-py==2.6.0
+
+# Cache
+redis==5.0.8
+
+# Databases (optional - for audit logging)
+# clickhouse-connect==0.7.19
+
+# HTTP
+requests==2.32.3
+httpx==0.27.2
+
+# Retry logic
+tenacity==8.5.0
+
+# Time handling
+python-dateutil==2.9.0.post0
+
+# Metrics
+prometheus-client==0.20.0
+
+# Broker Adapters (permissive licenses only)
+ib-insync==0.9.86        # MIT
+ccxt==4.3.92             # MIT
+websockets==12.0
+
+# Configuration
+pyyaml==6.0.2
+
+# Data Lake (optional - for audit logging)
+# deltalake==0.20.2
+# pyarrow==17.0.0
+
+# Development
+pytest==8.3.3
+pytest-asyncio==0.24.0

@@ -1,0 +1,18 @@
+{
+  "identities": [
+    {
+      "name": "trade2026",
+      "credentials": [
+        {
+          "accessKey": "trade2026",
+          "secretKey": "trade2026secret"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "Write"
+      ]
+    }
+  ]
+}

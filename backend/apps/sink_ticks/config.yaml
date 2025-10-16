@@ -1,0 +1,46 @@
+# Sink Ticks Configuration
+# Phase 7B: Data Lake Sinks
+
+# NATS Configuration
+nats_url: "nats://nats:4222"
+subject: "market.tick.>"
+queue_group: "sink-ticks"
+
+# Batching Configuration
+batch_seconds: 2
+max_batch: 5000
+flush_on_shutdown: true
+
+# Valkey/Redis Configuration
+valkey_host: "valkey"
+valkey_port: 6379
+valkey_db: 0
+dedup_ttl_hours: 72
+lru_cache_size: 100000
+
+# S3 Configuration (SeaweedFS)
+s3:
+  endpoint: "http://seaweedfs:8333"
+  region: "us-east-1"
+  access_key: "test"
+  secret_key: "test"
+  bucket: "trader2025"
+
+# Delta Lake Configuration
+delta:
+  table_uri: "s3://trader2025/lake/market_ticks"
+  partition_by: ["symbol", "dt"]
+  compression: "zstd"
+  enable_compaction: false
+  small_file_target_mb: 256
+  writer_threads: 2
+
+# Service Configuration
+health_port: 8111
+metrics_port: 9111
+log_level: "INFO"
+log_format: "json"
+
+# Performance Tuning
+max_workers: 4
+queue_size: 10000

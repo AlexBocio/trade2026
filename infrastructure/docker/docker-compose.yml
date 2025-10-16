@@ -1,0 +1,52 @@
+version: '3.8'
+
+# Trade2026 Master Docker Compose
+# This file orchestrates all platform components
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose down               # Stop all services
+#   docker-compose ps                 # Check status
+#   docker-compose logs -f            # View logs
+#
+# Architecture: CPGS v1.0 - Three-Lane Network Architecture
+# - Frontend Lane: 172.23.0.0/16 (authn, opa, frontend)
+# - Lowlatency Lane: 172.22.0.0/16 (nats)
+# - Backend Lane: 172.21.0.0/16 (databases, caches, object storage)
+#
+# Last Updated: 2025-10-14
+
+# Include all modular compose files
+include:
+  # Networks (CPGS v1.0 three-lane architecture)
+  # Creates: trade2026-frontend, trade2026-lowlatency, trade2026-backend
+  - path: docker-compose.networks.yml
+
+  # Core Infrastructure (8 services)
+  # NATS, Valkey, QuestDB, ClickHouse, SeaweedFS, OpenSearch, authn, OPA
+  - path: docker-compose.core.yml
+
+  # Backend Application Services (Phase 2 - NOT YET CREATED)
+  # OMS, Risk, Gateway, Execution, FillProcessor, PnL, etc.
+  # Uncomment when ready:
+  # - path: docker-compose.apps.yml
+
+  # Frontend Application (Phase 3 - NOT YET CREATED)
+  # React app, nginx, static assets
+  # Uncomment when ready:
+  # - path: docker-compose.frontend.yml
+
+  # ML Library & Pipelines (Phase 4 - NOT YET CREATED)
+  # Model serving, training pipelines, feature stores
+  # Uncomment when ready:
+  # - path: docker-compose.library.yml
+
+# No additional services defined here
+# All services are in modular files for maintainability
+#
+# To start individual components:
+#   docker-compose -f docker-compose.core.yml up -d
+#   docker-compose -f docker-compose.apps.yml up -d
+#
+# To start everything:
+#   docker-compose up -d

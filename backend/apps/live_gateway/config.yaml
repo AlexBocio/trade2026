@@ -1,0 +1,85 @@
+# Live Trading Gateway Configuration
+# Phase 11: Live Trading Enablement & Capital Ramp
+
+# Service
+service:
+  host: "0.0.0.0"
+  port: 8108
+  name: "live-gateway"
+  version: "1.0.0"
+
+# NATS
+nats_url: "nats://nats:4222"
+use_jetstream: true
+
+# Trading Modes
+modes:
+  global: "SHADOW"  # SHADOW | CANARY | LIVE
+  venues:
+    IBKR:
+      mode: "SHADOW"
+      canary_pct: 0.0
+      canary_max_qty: 0.0
+    ALPACA:
+      mode: "SHADOW"
+      canary_pct: 0.0
+      canary_max_qty: 0.0
+    CCXT:
+      mode: "SHADOW"
+      canary_pct: 0.0
+      canary_max_qty: 0.0
+
+# Capital Ramp Schedule
+ramp:
+  schedule:
+    - at: "2025-10-05T00:00:00Z"
+      pct: 0.01
+    - at: "2025-10-12T00:00:00Z"
+      pct: 0.02
+    - at: "2025-10-19T00:00:00Z"
+      pct: 0.05
+  hard_daily_notional_cap_usd: 50000
+
+# Venue Configurations
+venues:
+  ibkr:
+    host: "127.0.0.1"
+    port: 7497
+    client_id: 7
+    paper_only: true
+  alpaca:
+    base_url: "https://paper-api.alpaca.markets"
+  ccxt:
+    default_leverage: 1
+    testnet: true
+
+# Data Stores
+stores:
+  questdb_url: "http://questdb:9000"
+  clickhouse_url: "http://clickhouse:8123"
+  s3_endpoint: "http://seaweedfs:8333"
+  delta_audit_uri: "s3://trader2025/lake/audit/live_gateway"
+
+# Security
+security:
+  admin_api_key_env: "LTG_ADMIN_KEY"
+  tls_mtls_enabled: false
+
+# Circuit Breakers
+circuit_breakers:
+  consecutive_failures: 5
+  cooldown_seconds: 60
+  half_open_max_calls: 3
+
+# Audit Configuration
+audit:
+  enabled: true
+  path: "/data/audit/live_gateway"
+  # Note: File-based implementation for simplicity
+  # Upgrade to Delta Lake by uncommenting deltalake/pyarrow in requirements.txt
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"
+  scrub_secrets: true
