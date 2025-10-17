@@ -1,0 +1,102 @@
+# OMS Service Configuration
+# Order Management System - Core Trading Component
+
+# Service identification
+service_name: oms
+service_port: 8099
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration
+redis_host: valkey
+redis_port: 6379
+redis_db: 4
+
+# Risk Service Integration
+risk_service_url: http://risk:8103
+
+# Execution Service Integration
+exeq_service_url: http://exeq:8095
+
+# Order Limits
+max_orders_per_account: 100
+max_order_value: 1000000.0  # Maximum order value in USD
+max_open_orders: 1000  # Maximum total open orders
+
+# Order Validation
+validation:
+  min_symbol_length: 3
+  max_symbol_length: 20
+  min_quantity: 0.00001
+  max_quantity: 10000000
+  min_price: 0.00001
+  max_price: 1000000
+
+# Risk Check Settings
+risk_check:
+  enabled: true
+  timeout_ms: 1000  # 1 second timeout
+  bypass_on_timeout: false  # Don't allow orders if risk service times out
+
+# Order Routing
+routing:
+  default_venue: AUTO
+  smart_routing_enabled: true
+  venue_priorities:
+    - BINANCE
+    - COINBASE
+    - MOCK
+
+# Order Types Support
+supported_order_types:
+  - MARKET
+  - LIMIT
+  - STOP
+  - STOP_LIMIT
+
+# Time in Force Options
+supported_time_in_force:
+  - DAY
+  - GTC
+  - IOC
+  - FOK
+
+# Commission Structure
+commission:
+  default_rate: 0.001  # 0.1%
+  maker_rate: 0.0008
+  taker_rate: 0.0012
+  min_commission: 0.01
+  max_commission: 100.0
+
+# Order History
+history:
+  max_orders_in_memory: 1000
+  redis_ttl_hours: 24
+  archive_after_days: 7
+
+# Performance Settings
+performance:
+  batch_processing: true
+  batch_size: 10
+  process_interval_ms: 100
+
+# Circuit Breaker
+circuit_breaker:
+  enabled: true
+  failure_threshold: 10
+  recovery_timeout_sec: 30
+  half_open_requests: 3
+
+# Monitoring
+metrics:
+  enabled: true
+  port: 9099
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true

@@ -1,0 +1,112 @@
+# Risk Service Configuration
+# Real-time Risk Management and Enforcement
+
+# Service identification
+service_name: risk
+service_port: 8103
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration
+redis_host: valkey
+redis_port: 6379
+redis_db: 3
+
+# Risk Check Intervals
+check_interval: 1.0  # seconds - portfolio risk check
+alert_interval: 5.0  # seconds - alert aggregation
+
+# Portfolio-wide Risk Limits
+portfolio_limits:
+  max_exposure: 1000000.0  # Maximum total exposure in USD
+  max_positions: 100  # Maximum number of open positions
+  max_drawdown: 0.20  # Maximum drawdown percentage (20%)
+  min_margin_ratio: 0.25  # Minimum margin ratio (25%)
+  max_var_95: 50000.0  # Maximum Value at Risk at 95% confidence
+  max_var_99: 75000.0  # Maximum Value at Risk at 99% confidence
+
+# Per-Symbol Risk Limits
+symbol_limits:
+  BTCUSDT:
+    max_position: 10.0  # Maximum position size
+    max_value: 500000.0  # Maximum position value
+    max_concentration: 0.3  # Max 30% of portfolio
+  ETHUSDT:
+    max_position: 100.0
+    max_value: 200000.0
+    max_concentration: 0.25
+  DEFAULT:
+    max_position: 1000.0
+    max_value: 50000.0
+    max_concentration: 0.1
+
+# Risk Thresholds
+thresholds:
+  warning_level: 0.8  # 80% of limit triggers warning
+  critical_level: 0.9  # 90% of limit triggers critical alert
+  breach_action: BLOCK  # Action on limit breach: BLOCK, LIQUIDATE, ALERT_ONLY
+
+# Margin Requirements
+margin_requirements:
+  default_margin: 0.10  # 10% margin requirement
+  high_risk_margin: 0.25  # 25% for high risk symbols
+  maintenance_margin: 0.05  # 5% maintenance margin
+
+# Correlation Risk
+correlation:
+  enabled: true
+  max_correlation: 0.8  # Maximum allowed correlation between positions
+  check_interval: 300  # Check every 5 minutes
+
+# Volatility Limits
+volatility:
+  enabled: true
+  max_volatility: 0.5  # Maximum annualized volatility
+  lookback_period: 30  # Days for volatility calculation
+
+# Alert Configuration
+alerts:
+  enabled: true
+  max_alerts_per_minute: 10
+  alert_channels:
+    - risk.alerts
+    - monitoring.alerts
+  critical_alerts_channel: risk.critical
+
+# Circuit Breakers
+circuit_breakers:
+  portfolio_loss:
+    enabled: true
+    threshold: -50000.0  # Stop trading if daily loss exceeds
+    reset_time: 86400  # Reset after 24 hours
+  position_loss:
+    enabled: true
+    threshold: -10000.0  # Close position if loss exceeds
+  rapid_drawdown:
+    enabled: true
+    threshold: 0.05  # 5% rapid drawdown
+    time_window: 300  # Within 5 minutes
+
+# Blocked Symbols (initially empty, can be updated via API)
+blocked_symbols: []
+
+# Risk Scoring Weights
+risk_scoring:
+  exposure_weight: 0.3
+  concentration_weight: 0.2
+  volatility_weight: 0.2
+  correlation_weight: 0.15
+  var_weight: 0.15
+
+# Monitoring
+metrics:
+  enabled: true
+  port: 9097
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true

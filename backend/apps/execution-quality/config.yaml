@@ -1,0 +1,122 @@
+# Execution Quality Service Configuration
+# Trade Execution Quality Analysis and Reporting
+
+# Service identification
+service_name: execution_quality
+service_port: 8092
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration
+redis_host: valkey
+redis_port: 6379
+redis_db: 9
+
+# QuestDB Configuration
+questdb_host: questdb
+questdb_port: 8812
+questdb_user: admin
+questdb_password: quest
+
+# Analysis Settings
+analysis:
+  enabled: true
+  compute_interval: 5  # seconds
+  metrics_window: 300  # seconds (5 minutes)
+  benchmark_source: market  # market, vwap, twap
+
+# Execution Metrics
+metrics:
+  slippage:
+    enabled: true
+    threshold_bps: 10  # basis points
+
+  fill_rate:
+    enabled: true
+    min_acceptable: 0.95  # 95%
+
+  latency:
+    enabled: true
+    max_acceptable_ms: 100
+
+  market_impact:
+    enabled: true
+    threshold_bps: 5
+
+  price_improvement:
+    enabled: true
+    track_positive: true
+    track_negative: true
+
+# Benchmarks
+benchmarks:
+  vwap:
+    window_minutes: 5
+    enabled: true
+
+  twap:
+    window_minutes: 5
+    enabled: true
+
+  arrival_price:
+    enabled: true
+
+  implementation_shortfall:
+    enabled: true
+
+# Reporting
+reporting:
+  enabled: true
+  generate_interval: 60  # seconds
+  retention_days: 30
+
+  reports:
+    - daily_summary
+    - venue_comparison
+    - algo_performance
+    - best_execution
+
+# Alerting
+alerting:
+  enabled: true
+  channels:
+    - nats
+    - redis
+
+  thresholds:
+    high_slippage_bps: 20
+    low_fill_rate: 0.9
+    high_latency_ms: 200
+    high_market_impact_bps: 10
+
+# Venue Analysis
+venue_analysis:
+  enabled: true
+  venues:
+    - BINANCE
+    - COINBASE
+    - MOCK
+  compare_metrics:
+    - fill_rate
+    - average_slippage
+    - latency
+    - price_improvement
+
+# Performance
+performance:
+  batch_size: 100
+  worker_threads: 2
+  cache_ttl_seconds: 60
+
+# Monitoring
+monitoring:
+  enabled: true
+  port: 9092
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true

@@ -1,0 +1,89 @@
+# PTRC Service Configuration
+# Post-Trade, Risk & Compliance Engine
+
+# Service identification
+service_name: ptrc
+service_port: 8109
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration
+redis_host: valkey
+redis_port: 6379
+redis_db: 5
+
+# QuestDB Configuration
+questdb_host: questdb
+questdb_port: 8812
+questdb_user: admin
+questdb_password: quest
+
+# Compliance Settings
+compliance:
+  enabled: true
+  jurisdictions:
+    - US
+    - EU
+    - UK
+  check_sanctions: true
+  check_aml: true
+  check_kyc: true
+  max_check_time_ms: 5000
+
+# Post-Trade Processing
+post_trade:
+  reconciliation_interval: 60  # seconds
+  settlement_check_interval: 300  # seconds
+  t_plus_settlement_days: 2
+  batch_size: 100
+
+# Regulatory Reporting
+regulatory:
+  enabled: true
+  report_types:
+    - MIFID_II
+    - DODD_FRANK
+    - EMIR
+  report_interval: 3600  # seconds (hourly)
+  retention_days: 2555  # 7 years
+
+# Risk Monitoring
+risk_monitoring:
+  position_limit_check: true
+  exposure_limit_check: true
+  concentration_check: true
+  check_interval: 30  # seconds
+
+# Audit Trail
+audit:
+  enabled: true
+  log_all_trades: true
+  log_compliance_checks: true
+  log_regulatory_reports: true
+  retention_days: 2555  # 7 years
+
+# Alert Thresholds
+alerts:
+  enabled: true
+  failed_compliance_threshold: 5  # Alert after 5 failed checks
+  settlement_delay_hours: 24  # Alert if settlement delayed
+  reconciliation_mismatch_threshold: 0.01  # 1% mismatch tolerance
+
+# Performance Settings
+performance:
+  max_concurrent_checks: 50
+  cache_ttl_seconds: 300
+  batch_processing: true
+
+# Monitoring
+metrics:
+  enabled: true
+  port: 9109
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true

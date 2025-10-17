@@ -1,0 +1,21 @@
+=== APPLICATION SERVICES STATUS ===
+
+=== PRIORITY 1 (Foundation) ===
+normalizer (8091): UNHEALTHY/NOT_RUNNING
+sink-ticks (8111): HEALTHY
+sink-alt (8112): HEALTHY
+
+=== PRIORITY 2 (Data Ingestion) ===
+gateway (8080): UNHEALTHY/NOT_RUNNING
+live-gateway (8200): UNHEALTHY/NOT_RUNNING
+
+=== PRIORITY 3 (Trading Core - CRITICAL) ===
+risk (8103): HEALTHY
+oms (8099): HEALTHY
+exeq (8095): HEALTHY
+
+=== PRIORITY 4 (Supporting) ===
+ptrc (8109): HEALTHY
+pnl (8100): HEALTHY
+hot_cache (8088): HEALTHY
+questdb_writer (8090): HEALTHY

@@ -1,0 +1,141 @@
+# QuestDB Writer Service Configuration
+# High-Performance Time-Series Data Writer
+
+# Service identification
+service_name: questdb_writer
+service_port: 8090
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration (for buffering)
+redis_host: valkey
+redis_port: 6379
+redis_db: 7
+
+# QuestDB Configuration
+questdb:
+  host: questdb
+  ilp_port: 9009  # InfluxDB Line Protocol port
+  pg_port: 8812    # PostgreSQL wire protocol port
+  http_port: 9003  # HTTP port
+  user: admin
+  password: quest
+  database: trade_data
+
+# Writing Configuration
+writer:
+  batch_size: 1000
+  flush_interval_ms: 100
+  max_batch_wait_ms: 500
+  max_retries: 3
+  retry_delay_ms: 1000
+  compression: true
+
+# Data Tables
+tables:
+  trades:
+    name: trades
+    timestamp_column: execution_time
+    columns:
+      - trade_id
+      - order_id
+      - symbol
+      - side
+      - quantity
+      - price
+      - venue
+      - account_id
+    partition: HOUR
+
+  market_data:
+    name: market_data
+    timestamp_column: timestamp
+    columns:
+      - symbol
+      - bid_price
+      - ask_price
+      - bid_size
+      - ask_size
+      - last_price
+      - volume
+    partition: DAY
+
+  orders:
+    name: orders
+    timestamp_column: created_at
+    columns:
+      - order_id
+      - symbol
+      - side
+      - order_type
+      - quantity
+      - price
+      - status
+      - account_id
+    partition: DAY
+
+  positions:
+    name: positions
+    timestamp_column: updated_at
+    columns:
+      - account_id
+      - symbol
+      - quantity
+      - avg_price
+      - pnl
+      - unrealized_pnl
+    partition: DAY
+
+  risk_metrics:
+    name: risk_metrics
+    timestamp_column: calculated_at
+    columns:
+      - account_id
+      - var_95
+      - var_99
+      - max_drawdown
+      - sharpe_ratio
+      - exposure
+    partition: DAY
+
+# Buffer Settings
+buffer:
+  enabled: true
+  max_size_mb: 100
+  overflow_to_disk: true
+  disk_path: /tmp/questdb_buffer
+
+# Data Processing
+processing:
+  enable_deduplication: true
+  enable_validation: true
+  enable_transformation: true
+  timestamp_precision: microsecond
+
+# Performance
+performance:
+  worker_threads: 4
+  io_threads: 2
+  connection_pool_size: 10
+  keep_alive: true
+
+# Monitoring
+monitoring:
+  track_write_latency: true
+  track_batch_sizes: true
+  track_error_rates: true
+  alert_on_high_latency_ms: 100
+  alert_on_error_rate: 0.01
+
+# Metrics
+metrics:
+  enabled: true
+  port: 9090
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true

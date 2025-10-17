@@ -1,0 +1,23 @@
+NAMES               STATUS
+execution-quality   Up 3 hours (healthy)
+feast-pipeline      Up 3 hours (healthy)
+questdb_writer      Up 3 hours (healthy)
+hot_cache           Up 3 hours (healthy)
+ptrc                Up 3 hours (healthy)
+pnl                 Up 3 hours (unhealthy)
+oms                 Up 3 hours (healthy)
+risk                Up 3 hours (healthy)
+exeq                Up 4 hours (healthy)
+sink-alt            Up 4 hours (unhealthy)
+sink-ticks          Up 4 hours (unhealthy)
+gateway             Up 4 hours
+live-gateway        Up 4 hours (healthy)
+normalizer          Up 4 hours (healthy)
+authn               Up 4 hours (healthy)
+opa                 Up 4 hours
+clickhouse          Up 4 hours (healthy)
+nats                Up 4 hours (healthy)
+valkey              Up 4 hours (healthy)
+seaweedfs           Up 4 hours
+questdb             Up 4 hours
+opensearch          Up 4 hours (healthy)

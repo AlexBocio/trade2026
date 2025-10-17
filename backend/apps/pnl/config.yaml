@@ -1,0 +1,81 @@
+# P&L Service Configuration
+# Profit & Loss Calculation Engine
+
+# Service identification
+service_name: pnl
+service_port: 8100
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration
+redis_host: valkey
+redis_port: 6379
+redis_db: 2
+
+# QuestDB Configuration
+questdb_host: questdb
+questdb_port: 8812
+questdb_user: admin
+questdb_password: quest
+
+# P&L Calculation Settings
+calculation:
+  update_interval: 1  # seconds
+  snapshot_interval: 60  # seconds
+  batch_size: 100
+  precision: 8  # decimal places
+
+# Position Tracking
+position_tracking:
+  max_positions: 10000
+  aggregate_by_symbol: true
+  track_history: true
+  history_retention: 7  # days
+
+# Performance Metrics
+performance_metrics:
+  enabled: true
+  calculate_sharpe: true
+  calculate_sortino: true
+  calculate_max_drawdown: true
+  risk_free_rate: 0.02  # 2% annual
+  periods_per_year: 365  # for daily calculations
+
+# Fee Structure (default)
+fees:
+  maker_fee: 0.001  # 0.1%
+  taker_fee: 0.0015  # 0.15%
+  min_fee: 0.01
+  max_fee: 1000.0
+
+# Venue-specific fee overrides
+venue_fees:
+  BINANCE:
+    maker_fee: 0.001
+    taker_fee: 0.001
+  COINBASE:
+    maker_fee: 0.005
+    taker_fee: 0.005
+  MOCK:
+    maker_fee: 0
+    taker_fee: 0
+
+# Alert Thresholds
+alerts:
+  enabled: true
+  max_loss_threshold: -1000.0  # Alert if daily loss exceeds
+  max_drawdown_threshold: 0.1  # Alert if drawdown exceeds 10%
+  position_size_threshold: 100000.0  # Alert for large positions
+
+# Monitoring
+metrics:
+  enabled: true
+  port: 9096
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true

@@ -5,9 +5,12 @@ import asyncio
 import json
 import random
 import time
+from datetime import datetime
+from typing import List
 import nats
 import redis
 from fastapi import FastAPI
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import uvicorn
 
@@ -15,6 +18,7 @@ import uvicorn
 nc = None
 redis_client = None
 tick_count = 0
+current_prices = {}  # Store current prices for /tickers endpoint
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,12 +42,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+class Ticker(BaseModel):
+    symbol: str
+    last_price: float
+    bid: float
+    ask: float
+    volume_24h: float
+    change_24h: float
+    timestamp: str
+
 async def generate_mock_data():
     """Generate mock market ticks"""
-    global nc, tick_count
+    global nc, tick_count, current_prices
 
-    symbols = ["BTCUSDT", "ETHUSDT"]
-    prices = {"BTCUSDT": 45000.0, "ETHUSDT": 2500.0}
+    symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+    prices = {"BTCUSDT": 45000.0, "ETHUSDT": 2500.0, "SOLUSDT": 100.0}
+    volumes = {"BTCUSDT": 1000000.0, "ETHUSDT": 500000.0, "SOLUSDT": 250000.0}
+    changes = {"BTCUSDT": 2.5, "ETHUSDT": 1.8, "SOLUSDT": -0.5}
 
     while True:
         for symbol in symbols:
@@ -65,6 +80,16 @@ async def generate_mock_data():
                 "ask": price + 1
             }
 
+            # Update current prices for /tickers endpoint
+            current_prices[symbol] = {
+                "price": price,
+                "bid": price - 1,
+                "ask": price + 1,
+                "volume_24h": volumes.get(symbol, 1000000.0),
+                "change_24h": changes.get(symbol, 0.0),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
             # Publish to NATS
             await nc.publish(f"market.tick.{symbol}", json.dumps(tick).encode())
             tick_count += 1
@@ -74,6 +99,85 @@ async def generate_mock_data():
 @app.get("/health")
 async def health():
     return {"status": "ok", "ticks_sent": tick_count}
+
+@app.get("/tickers", response_model=List[Ticker])
+async def get_tickers():
+    """Get list of all available tickers"""
+    global current_prices
+
+    tickers = []
+    for symbol, data in current_prices.items():
+        tickers.append(Ticker(
+            symbol=symbol,
+            last_price=data["price"],
+            bid=data["bid"],
+            ask=data["ask"],
+            volume_24h=data["volume_24h"],
+            change_24h=data["change_24h"],
+            timestamp=data["timestamp"]
+        ))
+
+    # If no data yet, return mock data
+    if not tickers:
+        tickers = [
+            Ticker(
+                symbol="BTCUSDT",
+                last_price=45000.0,
+                bid=44999.0,
+                ask=45001.0,
+                volume_24h=1000000.0,
+                change_24h=2.5,
+                timestamp=datetime.utcnow().isoformat()
+            ),
+            Ticker(
+                symbol="ETHUSDT",
+                last_price=2500.0,
+                bid=2499.5,
+                ask=2500.5,
+                volume_24h=500000.0,
+                change_24h=1.8,
+                timestamp=datetime.utcnow().isoformat()
+            ),
+            Ticker(
+                symbol="SOLUSDT",
+                last_price=100.0,
+                bid=99.95,
+                ask=100.05,
+                volume_24h=250000.0,
+                change_24h=-0.5,
+                timestamp=datetime.utcnow().isoformat()
+            )
+        ]
+
+    return tickers
+
+@app.get("/ticker/{symbol}", response_model=Ticker)
+async def get_ticker(symbol: str):
+    """Get ticker for specific symbol"""
+    global current_prices
+
+    if symbol in current_prices:
+        data = current_prices[symbol]
+        return Ticker(
+            symbol=symbol,
+            last_price=data["price"],
+            bid=data["bid"],
+            ask=data["ask"],
+            volume_24h=data["volume_24h"],
+            change_24h=data["change_24h"],
+            timestamp=data["timestamp"]
+        )
+
+    # Return mock data if symbol not found
+    return Ticker(
+        symbol=symbol,
+        last_price=45000.0,
+        bid=44999.0,
+        ask=45001.0,
+        volume_24h=1000000.0,
+        change_24h=2.5,
+        timestamp=datetime.utcnow().isoformat()
+    )
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

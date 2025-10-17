@@ -1,0 +1,96 @@
+# Feast Pipeline Service Configuration
+# Feature Engineering and ML Pipeline
+
+# Service identification
+service_name: feast_pipeline
+service_port: 8091
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration
+redis_host: valkey
+redis_port: 6379
+redis_db: 8
+
+# Feature Store Settings
+feature_store:
+  name: trade_features
+  description: Trading platform feature store
+  version: 1.0.0
+
+# Feature Sets
+feature_sets:
+  market_features:
+    description: Market-based features
+    features:
+      - price_sma_5
+      - price_sma_20
+      - volume_sma_10
+      - bid_ask_spread
+      - price_volatility
+      - volume_ratio
+    update_interval: 1  # seconds
+
+  account_features:
+    description: Account-based features
+    features:
+      - total_positions
+      - total_exposure
+      - win_rate
+      - avg_trade_size
+      - daily_pnl
+      - risk_score
+    update_interval: 5  # seconds
+
+  risk_features:
+    description: Risk-based features
+    features:
+      - var_95
+      - var_99
+      - max_drawdown
+      - sharpe_ratio
+      - beta
+      - correlation_matrix
+    update_interval: 10  # seconds
+
+# Feature Engineering
+engineering:
+  enable_rolling_windows: true
+  enable_aggregations: true
+  enable_transformations: true
+  window_sizes: [5, 10, 20, 50]
+  aggregation_functions: [mean, std, min, max, sum]
+
+# ML Pipeline
+ml_pipeline:
+  enabled: false  # Simplified for now
+  models:
+    - price_prediction
+    - risk_classification
+    - anomaly_detection
+  update_interval: 300  # seconds
+
+# Caching
+cache:
+  enabled: true
+  ttl_seconds: 60
+  max_size_mb: 256
+
+# Performance
+performance:
+  batch_size: 100
+  worker_threads: 2
+  computation_timeout_ms: 1000
+
+# Monitoring
+metrics:
+  enabled: true
+  port: 9091
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true

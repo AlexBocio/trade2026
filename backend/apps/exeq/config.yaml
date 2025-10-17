@@ -1,0 +1,88 @@
+# ExeQ Service Configuration
+# Execution & Queueing Engine
+
+# Service identification
+service_name: exeq
+service_port: 8095
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration
+redis_host: valkey
+redis_port: 6379
+redis_db: 1
+
+# Queue Configuration
+max_queue_size: 10000
+batch_size: 10
+process_interval: 0.1  # seconds
+
+# Venue Configuration
+venue_priorities:
+  - MOCK
+  - PAPER
+  - BINANCE
+  - COINBASE
+
+# Routing Rules (symbol-specific)
+routing_rules:
+  BTCUSDT: BINANCE
+  ETHUSDT: BINANCE
+  BTC-USD: COINBASE
+  ETH-USD: COINBASE
+
+# Smart Routing Configuration
+smart_routing:
+  enabled: true
+  split_large_orders: true
+  max_order_size:
+    BTCUSDT: 10.0
+    ETHUSDT: 100.0
+  min_order_size:
+    BTCUSDT: 0.001
+    ETHUSDT: 0.01
+
+# Venue Specific Settings
+venues:
+  BINANCE:
+    enabled: false  # Disabled due to API blocking
+    rate_limit: 10  # orders per second
+    timeout: 5000  # milliseconds
+  COINBASE:
+    enabled: false
+    rate_limit: 5
+    timeout: 5000
+  MOCK:
+    enabled: true
+    rate_limit: 100
+    timeout: 100
+  PAPER:
+    enabled: true
+    rate_limit: 1000
+    timeout: 10
+
+# Retry Configuration
+retry:
+  max_attempts: 3
+  backoff_multiplier: 2
+  initial_delay: 100  # milliseconds
+
+# Circuit Breaker
+circuit_breaker:
+  enabled: true
+  failure_threshold: 5
+  recovery_timeout: 30  # seconds
+  half_open_requests: 3
+
+# Monitoring
+metrics:
+  enabled: true
+  port: 9095
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true

@@ -1,0 +1,108 @@
+# Hot Cache Service Configuration
+# High-Performance In-Memory Caching Layer
+
+# Service identification
+service_name: hot_cache
+service_port: 8088
+
+# NATS Configuration
+nats_url: nats://nats:4222
+
+# Redis/Valkey Configuration (L2 cache)
+redis_host: valkey
+redis_port: 6379
+redis_db: 6
+
+# Cache Settings
+cache:
+  # L1 In-Memory Cache
+  l1_cache:
+    enabled: true
+    max_size_mb: 512  # Maximum memory usage
+    eviction_policy: LRU  # LRU, LFU, FIFO
+    ttl_seconds: 60  # Default TTL
+
+  # L2 Redis Cache
+  l2_cache:
+    enabled: true
+    ttl_seconds: 300  # 5 minutes
+    max_connections: 50
+
+# Data Categories (with specific TTL)
+data_categories:
+  market_data:
+    ttl: 1  # 1 second for market data
+    preload: true
+    compression: false
+
+  reference_data:
+    ttl: 3600  # 1 hour for reference data
+    preload: true
+    compression: true
+
+  user_preferences:
+    ttl: 1800  # 30 minutes
+    preload: false
+    compression: false
+
+  order_book:
+    ttl: 0.5  # 500ms for order book
+    preload: false
+    compression: false
+
+  positions:
+    ttl: 5  # 5 seconds for positions
+    preload: true
+    compression: false
+
+# Preloading
+preload:
+  enabled: true
+  startup_delay: 5  # seconds
+  batch_size: 1000
+  sources:
+    - redis
+    - questdb
+
+# Performance
+performance:
+  compression_threshold_bytes: 1024  # Compress if larger
+  serialization: msgpack  # json, msgpack, pickle
+  async_operations: true
+  batch_get_size: 100
+
+# Cache Warming
+warming:
+  enabled: true
+  interval: 30  # seconds
+  patterns:
+    - "market:*"
+    - "position:*"
+    - "reference:*"
+
+# Invalidation
+invalidation:
+  enabled: true
+  strategies:
+    - event_based  # Via NATS events
+    - ttl_based    # Natural expiry
+    - manual       # API endpoint
+
+# Monitoring
+monitoring:
+  track_hit_ratio: true
+  track_latency: true
+  track_memory_usage: true
+  alert_on_low_hit_ratio: 0.5  # Alert if below 50%
+
+# Metrics
+metrics:
+  enabled: true
+  port: 9088
+  interval: 10  # seconds
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  include_timestamp: true
