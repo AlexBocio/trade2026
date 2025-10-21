@@ -26,10 +26,9 @@ include:
   # NATS, Valkey, QuestDB, ClickHouse, SeaweedFS, OpenSearch, authn, OPA
   - path: docker-compose.core.yml
 
-  # Backend Application Services (Phase 2 - NOT YET CREATED)
+  # Backend Application Services (Phase 2)
   # OMS, Risk, Gateway, Execution, FillProcessor, PnL, etc.
-  # Uncomment when ready:
-  # - path: docker-compose.apps.yml
+  - path: docker-compose.apps.yml
 
   # Frontend Application (Phase 3 - NOT YET CREATED)
   # React app, nginx, static assets

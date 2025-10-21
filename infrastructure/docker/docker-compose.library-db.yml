@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  postgres-library:
+    # Official PostgreSQL image
+    # Source: https://hub.docker.com/_/postgres
+    # Verified: "Official Image" badge on Docker Hub
+    image: postgres:16-alpine
+
+    container_name: postgres-library
+    hostname: postgres-library
+
+    # Environment variables
+    environment:
+      POSTGRES_DB: library
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_admin_2025
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+    # Ports
+    ports:
+      - "5433:5432"  # External:Internal (avoid conflict with other PostgreSQL)
+
+    # Volumes
+    volumes:
+      # Data persistence (using subdirectory to allow backups folder)
+      - ../../data/postgres-library:/var/lib/postgresql/data
+
+      # Init scripts (run in alphabetical order)
+      - ../../infrastructure/docker/init-scripts/postgres-library:/docker-entrypoint-initdb.d
+
+      # Configuration
+      - ../../config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+
+    # Command - use custom config
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d library"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Networks
+    networks:
+      - trade2026-backend
+
+networks:
+  trade2026-backend:
+    external: true
+    name: trade2026-backend

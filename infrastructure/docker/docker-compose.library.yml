@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  library:
+    build:
+      context: ../../library/apps/library
+      dockerfile: Dockerfile
+
+    container_name: library
+    hostname: library
+
+    # Environment variables
+    environment:
+      # Service config
+      SERVICE_NAME: library-service
+      VERSION: 1.0.0
+      API_V1_PREFIX: /api/v1
+      HOST: 0.0.0.0
+      PORT: 8350
+      DEBUG: "false"
+
+      # Database
+      DATABASE_URL: postgresql://library_service:change_in_production_2025@postgres-library:5432/library
+      DB_POOL_SIZE: 10
+      DB_MAX_OVERFLOW: 20
+      DB_ECHO: "false"
+
+      # NATS (enabled in Prompt 03)
+      NATS_URL: nats://nats:4222
+      NATS_ENABLED: "true"
+
+      # Logging
+      LOG_LEVEL: INFO
+
+      # CORS
+      CORS_ORIGINS: '["*"]'
+      CORS_ALLOW_CREDENTIALS: "true"
+
+    # Ports
+    ports:
+      - "8350:8350"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8350/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Networks
+    networks:
+      - trade2026-backend
+      - trade2026-lowlatency
+
+networks:
+  trade2026-backend:
+    external: true
+    name: trade2026-backend
+  trade2026-lowlatency:
+    external: true
+    name: trade2026-lowlatency

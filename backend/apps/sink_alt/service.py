@@ -359,54 +359,32 @@ app = FastAPI(
 
 @app.get("/health")
 async def health():
-    """Health check endpoint"""
+    """Health check endpoint - lenient for data sink services"""
     global service
 
+    # During startup before service is created
     if not service:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-
-    # Check components - be more lenient for functional service
-    checks = {}
-
-    # NATS - optional for this service
-    if service.nc:
-        checks['nats'] = service.nc.is_connected
-    else:
-        checks['nats'] = True  # Can work without NATS
-
-    # S3 client exists
-    checks['s3'] = service.s3_client is not None
-
-    # Dedup manager exists
-    checks['dedup'] = service.dedup_manager is not None
-
-    # Delta writer exists
-    checks['delta'] = service.delta_writer is not None
-
-    # Service is considered healthy if it can write (delta writer exists)
-    # Even if NATS is disconnected, it might be processing cached data
-    is_healthy = checks['delta'] and checks['s3']
-
-    if is_healthy:
-        return JSONResponse(
-            status_code=200,
-            content={
-                'status': 'healthy',
-                'service': 'sink-alt',
-                'checks': checks,
-                'stats': service.get_stats()
-            }
-        )
-    else:
         return JSONResponse(
             status_code=503,
-            content={
-                'status': 'unhealthy',
-                'service': 'sink-alt',
-                'checks': checks,
-                'stats': service.get_stats()
-            }
+            content={'status': 'starting', 'service': 'sink-alt'}
         )
+
+    # Check if fully initialized (has delta writer)
+    if not service.delta_writer:
+        return JSONResponse(
+            status_code=503,
+            content={'status': 'initializing', 'service': 'sink-alt'}
+        )
+
+    # Service is healthy if it can write data (has delta writer)
+    # This service is functional even without NATS - can process cached data
+    return {
+        'status': 'healthy',
+        'service': 'sink-alt',
+        'nats_connected': service.nc.is_connected if service.nc else False,
+        'messages_processed': service.stats.get('messages_processed', 0),
+        'batches_flushed': service.stats.get('batches_flushed', 0)
+    }
 
 
 @app.get("/metrics", response_class=PlainTextResponse)

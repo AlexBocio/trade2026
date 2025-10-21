@@ -1,0 +1,36 @@
+
+<
+
+__dummy"
+__dummy_idJlibrary
+þˆÛÇ ŠûþˆÛÇ Šû
+b
+D
+symbol'Trading symbol (e.g., BTCUSDT, ETHUSDT)"symbolJlibrary
+þˆÛÇÐåþˆÛÇÐå1"$ae88851f-ddff-4537-874f-0c92be9afa21*Ï¡ÛÇ Öµû2–
+ä
+technical_indicatorslibrarysymbol"	
+close"
+rsi"
+macd"
+macd_signal"
+macd_histogram"
+macd_crossover"
+bb_upper"
+	bb_middle"
+bb_lower"
+bb_bandwidth"
+bb_percent_b"
+
+bb_squeeze"
+bb_breakout2€õ$:—	timestampZdata/features.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢technical_indicators_source’•‹ÛÇØ™Ñû"•‹ÛÇØ™Ñû@RFTechnical indicators for trading strategy (RSI, MACD, Bollinger Bands)b
+
+symbol-
+þˆÛÇ¨ŠˆÏ¡ÛÇàßû
+€ÞñÆ€šÛÇRž
+›
+,feast.infra.online_stores.sqlite.SqliteTable"k
+KC:\claudedesktop_projects\trade2026\feast\feature_repo\data\online_store.dblibrary_technical_indicatorsb 	timestampZdata/features.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢technical_indicators_sourceªlibrary’ýˆÛÇÈŠÏ"þˆÛÇ˜‡ïŠ)
+	
+library
+ýˆÛÇØ¼çÑýˆÛÇØ¼çÑ
