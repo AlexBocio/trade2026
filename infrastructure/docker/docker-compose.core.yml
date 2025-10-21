@@ -112,7 +112,7 @@ services:
       - "8123:8123"   # HTTP API
       - "9001:9000"   # Native TCP (mapped to 9001 to avoid QuestDB conflict)
     volumes:
-      - ../../data/clickhouse:/var/lib/clickhouse
+      - clickhouse-data:/var/lib/clickhouse  # Using Docker named volume to fix Windows permission issues
     networks:
       - backend
     environment:
@@ -267,3 +267,8 @@ services:
       - "com.trade2026.cpgs.version=1.0"
       - "com.trade2026.component=infrastructure"
       - "com.trade2026.network.lane=frontend"
+
+# Docker named volumes (managed by Docker, better permissions handling)
+volumes:
+  clickhouse-data:
+    name: trade2026-clickhouse-data
