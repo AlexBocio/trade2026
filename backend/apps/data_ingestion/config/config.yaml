@@ -1,0 +1,119 @@
+# Data Ingestion Service Configuration
+# Phase 6: Money Flow & Screener Implementation
+
+# Service
+service:
+  host: "0.0.0.0"
+  port: 8500
+  name: "data-ingestion"
+  version: "1.0.0"
+
+# NATS
+nats_url: "nats://nats:4222"
+use_jetstream: true
+
+# IBKR Configuration
+ibkr:
+  host: "host.docker.internal"  # Docker -> Host networking
+  port: 4002  # IB Gateway port (configured in Gateway settings)
+  client_id: 10
+  reconnect_delay_seconds: 5
+  max_reconnect_attempts: 5
+
+  # Data subscriptions
+  subscribe:
+    level1: true
+    level2: true  # Order book (10 levels)
+    time_and_sales: true
+
+  # ETF symbols for sector tracking
+  sector_etfs:
+    - XLK  # Technology
+    - XLV  # Healthcare
+    - XLF  # Financials
+    - XLY  # Consumer Discretionary
+    - XLI  # Industrials
+    - XLP  # Consumer Staples
+    - XLE  # Energy
+    - XLB  # Materials
+    - XLRE # Real Estate
+    - XLU  # Utilities
+    - XLC  # Communication Services
+
+  benchmark_etfs:
+    - SPY  # S&P 500
+    - QQQ  # Nasdaq 100
+    - IWM  # Russell 2000
+    - DIA  # Dow Jones
+
+# FRED API Configuration
+fred:
+  api_key_env: "FRED_API_KEY"
+  base_url: "https://api.stlouisfed.org/fred"
+  update_interval_minutes: 60
+
+  # Economic indicators
+  series:
+    - VIXCLS        # VIX volatility
+    - GS10          # 10-year Treasury
+    - GS2           # 2-year Treasury
+    - T10Y2Y        # Yield curve spread
+    - BAMLH0A0HYM2  # High yield spread
+    - TEDRATE       # TED spread
+    - DFF           # Fed funds rate
+
+# Crypto Configuration
+crypto:
+  binance:
+    base_url: "https://api.binance.com"
+    symbols:
+      - BTCUSDT
+      - ETHUSDT
+
+  alternative_me:
+    fear_greed_url: "https://api.alternative.me/fng/"
+    update_interval_minutes: 30
+
+  coingecko:
+    base_url: "https://api.coingecko.com/api/v3"
+    update_interval_minutes: 60
+
+# Data Stores
+stores:
+  questdb:
+    url: "http://questdb:9000"
+    ilp_host: "questdb"
+    ilp_port: 9009
+
+  clickhouse:
+    url: "http://clickhouse:8123"
+    database: "trade2026"
+
+  valkey:
+    host: "valkey"
+    port: 6379
+    db: 0
+    ttl_seconds: 300  # 5 minutes for real-time data
+
+# Circuit Breakers
+circuit_breakers:
+  consecutive_failures: 3
+  cooldown_seconds: 30
+  half_open_max_calls: 2
+
+# Retry Strategy (Exponential Backoff)
+retry:
+  max_attempts: 5
+  initial_delay_seconds: 1
+  max_delay_seconds: 60
+  exponential_base: 2
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"
+
+# Health Check
+health_check:
+  enabled: true
+  interval_seconds: 30

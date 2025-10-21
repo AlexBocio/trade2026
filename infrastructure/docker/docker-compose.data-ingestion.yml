@@ -1,0 +1,49 @@
+version: '3.8'
+
+# Trade2026 Data Ingestion Service - Phase 6
+# Streams external data (IBKR, FRED, Crypto, ETF) to QuestDB/Valkey
+# CPGS v1.0 Compliant
+
+networks:
+  backend:
+    external: true
+    name: trade2026-backend
+  lowlatency:
+    external: true
+    name: trade2026-lowlatency
+
+services:
+  # ============================================
+  # Data Ingestion Service (Phase 6)
+  # ============================================
+  data-ingestion:
+    image: localhost/data-ingestion:latest
+    container_name: data-ingestion
+    build:
+      context: ../../backend/apps/data_ingestion
+      dockerfile: Dockerfile
+    ports:
+      - "8500:8500"   # HTTP API
+    volumes:
+      - ../../backend/apps/data_ingestion/config:/app/config
+      - ../../data/logs/data-ingestion:/data/logs
+    networks:
+      - backend
+      - lowlatency
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    labels:
+      - "com.trade2026.service=data-ingestion"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.component=backend"
+      - "com.trade2026.network.lane=backend,lowlatency"
+      - "com.trade2026.phase=6"
+    # Note: Depends on infrastructure services (nats, questdb, clickhouse, valkey)
+    # which must be running already from docker-compose.core.yml
