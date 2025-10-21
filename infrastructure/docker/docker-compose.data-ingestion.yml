@@ -32,6 +32,7 @@ services:
       - lowlatency
     environment:
       - CONFIG_PATH=/app/config/config.yaml
+      - FRED_API_KEY=${FRED_API_KEY}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8500/health"]
       interval: 30s

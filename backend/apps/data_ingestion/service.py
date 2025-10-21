@@ -23,6 +23,7 @@ import uvicorn
 
 # Import adapters
 from adapters.ibkr_adapter import create_ibkr_adapter, IBKRAdapter
+from adapters.fred_adapter import create_fred_adapter, FREDAdapter
 
 
 # Configure logging
@@ -52,8 +53,8 @@ class DataIngestionService:
 
         # Adapters
         self.ibkr_adapter: Optional[IBKRAdapter] = None
+        self.fred_adapter: Optional[FREDAdapter] = None
         # TODO: Add other adapters as they're implemented
-        # self.fred_adapter = None
         # self.crypto_adapter = None
         # self.etf_adapter = None
         # self.breadth_calculator = None
@@ -77,8 +78,9 @@ class DataIngestionService:
 
             # Check adapter health
             ibkr_healthy = self.ibkr_adapter.is_healthy() if self.ibkr_adapter else False
+            fred_healthy = self.fred_adapter.is_healthy() if self.fred_adapter else False
 
-            overall_healthy = ibkr_healthy  # Add more adapters as implemented
+            overall_healthy = ibkr_healthy and fred_healthy
 
             if not overall_healthy:
                 raise HTTPException(status_code=503, detail="One or more adapters unhealthy")
@@ -93,6 +95,7 @@ class DataIngestionService:
         async def status():
             """Detailed status endpoint"""
             ibkr_status = self.ibkr_adapter.get_status() if self.ibkr_adapter else {"error": "not initialized"}
+            fred_status = self.fred_adapter.get_status() if self.fred_adapter else {"error": "not initialized"}
 
             return {
                 "service": "data-ingestion",
@@ -100,8 +103,8 @@ class DataIngestionService:
                 "running": self.running,
                 "adapters": {
                     "ibkr": ibkr_status,
+                    "fred": fred_status,
                     # Add other adapters as they're implemented
-                    # "fred": self.fred_adapter.get_status() if self.fred_adapter else {"error": "not implemented"},
                     # "crypto": self.crypto_adapter.get_status() if self.crypto_adapter else {"error": "not implemented"},
                 }
             }
@@ -180,8 +183,24 @@ class DataIngestionService:
             logger.error(f"Failed to start IBKR Adapter: {e}")
             raise
 
+        # Initialize FRED Adapter
+        try:
+            fred_config = self.config.get("fred", {})
+
+            self.fred_adapter = create_fred_adapter(
+                fred_config,
+                store_config,
+                logger
+            )
+
+            await self.fred_adapter.start()
+            logger.info("FRED Adapter started successfully")
+
+        except Exception as e:
+            logger.error(f"Failed to start FRED Adapter: {e}")
+            raise
+
         # TODO: Initialize other adapters
-        # await self.fred_adapter.start()
         # await self.crypto_adapter.start()
         # await self.etf_adapter.start()
 
@@ -202,8 +221,15 @@ class DataIngestionService:
             except Exception as e:
                 logger.error(f"Error stopping IBKR Adapter: {e}")
 
+        # Stop FRED Adapter
+        if self.fred_adapter:
+            try:
+                await self.fred_adapter.stop()
+                logger.info("FRED Adapter stopped")
+            except Exception as e:
+                logger.error(f"Error stopping FRED Adapter: {e}")
+
         # TODO: Stop other adapters
-        # await self.fred_adapter.stop()
         # await self.crypto_adapter.stop()
 
         logger.info("Data Ingestion Service stopped")
