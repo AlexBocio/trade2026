@@ -1,0 +1,6 @@
+{
+  "port": 5007,
+  "service": "meta_labeling",
+  "status": "healthy",
+  "version": "1.0.0"
+}

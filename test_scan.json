@@ -1,0 +1,5 @@
+{
+  "universe": "sp500",
+  "strategy": "swing",
+  "top_n": 5
+}

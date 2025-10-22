@@ -1,0 +1,6 @@
+{
+  "tickers": ["AAPL", "MSFT", "GOOGL"],
+  "weights": {"AAPL": 0.33, "MSFT": 0.33, "GOOGL": 0.34},
+  "start_date": "2024-01-01",
+  "end_date": "2024-10-01"
+}

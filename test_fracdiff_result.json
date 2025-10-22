@@ -1,0 +1,6 @@
+{
+  "port": 5006,
+  "service": "fractional-diff-engine",
+  "status": "healthy",
+  "version": "1.0.0"
+}

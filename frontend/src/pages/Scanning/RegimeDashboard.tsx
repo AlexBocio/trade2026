@@ -5,8 +5,10 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, ArrowLeft } from 'lucide-react';
+import { RefreshCw, ArrowLeft, TrendingUp } from 'lucide-react';
 import { regimeApi } from '../../api/regimeApi';
+import dataIngestionApi from '../../api/dataIngestionApi';
+import type { FREDIndicator } from '../../api/dataIngestionApi';
 import TemporalContextCard from '../../components/Regime/TemporalContextCard';
 import MacroRegimeCard from '../../components/Regime/MacroRegimeCard';
 import CrossAssetMatrix from '../../components/Regime/CrossAssetMatrix';
@@ -42,6 +44,7 @@ export default function RegimeDashboard() {
   const [marketRegimes, setMarketRegimes] = useState<MarketRegimes | null>(null);
   const [sectorRegimes, setSectorRegimes] = useState<SectorRegimeData | null>(null);
   const [industryRegimes, setIndustryRegimes] = useState<IndustryRegimeData | null>(null);
+  const [fredIndicators, setFredIndicators] = useState<FREDIndicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
@@ -58,11 +61,12 @@ export default function RegimeDashboard() {
 
     try {
       // Fetch all data in parallel
-      const [temporal, macro, sectors, industries] = await Promise.all([
+      const [temporal, macro, sectors, industries, fredData] = await Promise.all([
         regimeApi.getTemporalContext(),
         regimeApi.getMacroRegime(),
         regimeApi.getSectorRegimes(),
         regimeApi.getIndustryRegimes(30),
+        dataIngestionApi.getFREDIndicators(),
       ]);
 
       // Also fetch market regimes
@@ -74,6 +78,7 @@ export default function RegimeDashboard() {
       setMarketRegimes(marketData);
       setSectorRegimes(sectors);
       setIndustryRegimes(industries);
+      setFredIndicators(fredData);
       setLastUpdate(new Date());
     } catch (err: any) {
       console.error('Failed to fetch regime data:', err);
@@ -168,6 +173,45 @@ export default function RegimeDashboard() {
             <TemporalContextCard data={temporalContext} />
             <MacroRegimeCard data={macroRegime} />
           </div>
+
+          {/* FRED Economic Indicators - Real-Time */}
+          {fredIndicators.length > 0 && (
+            <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-400" />
+                FRED Economic Indicators (Live)
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {fredIndicators
+                  .sort((a, b) => a.series_id.localeCompare(b.series_id))
+                  .map((indicator) => (
+                    <div
+                      key={indicator.series_id}
+                      className="bg-gray-750 rounded-lg p-4 border border-gray-600"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-mono text-blue-400">
+                          {indicator.series_id}
+                        </span>
+                        <span className="text-xs text-gray-500">{indicator.units}</span>
+                      </div>
+                      <div className="text-2xl font-bold text-white mb-2">
+                        {indicator.value.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate" title={indicator.title}>
+                        {indicator.title}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        As of: {indicator.date}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+              <div className="mt-4 text-xs text-gray-400">
+                <strong className="text-gray-300">Data Source:</strong> Federal Reserve Economic Data (FRED) via data-ingestion service
+              </div>
+            </div>
+          )}
 
           {/* Row 2: Cross-Asset Matrix */}
           <CrossAssetMatrix equities={marketRegimes} />

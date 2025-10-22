@@ -58,6 +58,7 @@ import { DataExplorer } from './pages/Database/DataExplorer';
 import { HotData } from './pages/Database/HotData';
 import { WarmData } from './pages/Database/WarmData';
 import { ColdData } from './pages/Database/ColdData';
+import MarketData from './pages/MarketData/MarketData';
 import { Reports } from './pages/Reports/Reports';
 import { ScheduleReports } from './pages/Reports/ScheduleReports';
 import { Settings } from './pages/Settings/Settings';
@@ -330,6 +331,10 @@ export const router = createBrowserRouter([
             element: <ColdData />,
           },
         ],
+      },
+      {
+        path: 'market-data',
+        element: <MarketData />,
       },
       {
         path: 'reports',

@@ -1,0 +1,5 @@
+{
+  "tickers": ["AAPL", "MSFT", "GOOGL"],
+  "method": "mean_variance",
+  "target_return": 0.15
+}

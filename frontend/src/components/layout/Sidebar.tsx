@@ -18,6 +18,7 @@ import {
   LineChart,
   Brain,
   Database,
+  Activity,
   FileText,
   Settings as SettingsIcon,
 } from 'lucide-react';
@@ -39,6 +40,7 @@ const navigationItems = [
   { name: 'Analytics', path: '/analytics', icon: LineChart },
   { name: 'AI Lab', path: '/ai-lab', icon: Brain },
   { name: 'Database', path: '/database', icon: Database },
+  { name: 'Market Data', path: '/market-data', icon: Activity },
   { name: 'Reports', path: '/reports', icon: FileText },
   { name: 'Settings', path: '/settings', icon: SettingsIcon },
 ];

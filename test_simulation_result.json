@@ -1,0 +1,6 @@
+{
+  "port": 5005,
+  "service": "Simulation Engine",
+  "status": "healthy",
+  "version": "1.0.0"
+}

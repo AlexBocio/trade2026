@@ -118,9 +118,67 @@ class DataIngestionService:
                 "endpoints": [
                     "/health",
                     "/status",
+                    "/api/market-data",
+                    "/api/economic-indicators",
                     "/docs"
                 ]
             }
+
+        @self.app.get("/api/market-data")
+        async def get_market_data():
+            """Get latest IBKR market data from Valkey cache"""
+            if not self.ibkr_adapter or not self.ibkr_adapter.valkey_client:
+                raise HTTPException(status_code=503, detail="IBKR adapter not ready")
+
+            try:
+                # Get all market:l1:* keys from Valkey (async client)
+                keys = await self.ibkr_adapter.valkey_client.keys("market:l1:*")
+
+                if not keys:
+                    return []
+
+                # Fetch all values
+                import json
+                market_data = []
+                for key in keys:
+                    data_str = await self.ibkr_adapter.valkey_client.get(key)
+                    if data_str:
+                        data = json.loads(data_str)
+                        market_data.append(data)
+
+                return market_data
+
+            except Exception as e:
+                logger.error(f"Failed to fetch market data: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/economic-indicators")
+        async def get_economic_indicators():
+            """Get latest FRED economic indicators from Valkey cache"""
+            if not self.fred_adapter or not self.fred_adapter.valkey_client:
+                raise HTTPException(status_code=503, detail="FRED adapter not ready")
+
+            try:
+                # Get all fred:* keys from Valkey (async client)
+                keys = await self.fred_adapter.valkey_client.keys("fred:*")
+
+                if not keys:
+                    return []
+
+                # Fetch all values
+                import json
+                indicators = []
+                for key in keys:
+                    data_str = await self.fred_adapter.valkey_client.get(key)
+                    if data_str:
+                        data = json.loads(data_str)
+                        indicators.append(data)
+
+                return indicators
+
+            except Exception as e:
+                logger.error(f"Failed to fetch economic indicators: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
 
     def load_config(self):
         """Load configuration from YAML file"""
