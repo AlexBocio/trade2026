@@ -270,21 +270,36 @@ def fetch_data(ticker: str, start_date: str = None, end_date: str = None) -> pd.
     Returns:
         DataFrame with price data and returns
     """
-    import yfinance as yf
+    import sys
+    import os
     from datetime import datetime, timedelta
+
+    # Add parent directory to path to import shared module
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    from shared.data_fetcher import fetch_prices
 
     if start_date is None:
         start_date = (datetime.now() - timedelta(days=730)).strftime('%Y-%m-%d')
     if end_date is None:
         end_date = datetime.now().strftime('%Y-%m-%d')
 
-    data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+    prices = fetch_prices(ticker, start=start_date, end=end_date, progress=False)
+
+    # Convert Series to DataFrame if needed
+    if isinstance(prices, pd.Series):
+        data = prices.to_frame(name='Close')
+    else:
+        data = prices
 
     if data.empty:
         raise ValueError(f"No data found for ticker: {ticker}")
 
+    # Ensure we have Close column
+    if 'Close' not in data.columns and len(data.columns) == 1:
+        data = data.rename(columns={data.columns[0]: 'Close'})
+
     # Calculate returns
-    data['returns'] = data['Adj Close'].pct_change()
+    data['returns'] = data['Close'].pct_change()
     data = data.dropna()
 
     return data

@@ -3,7 +3,13 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
-import yfinance as yf
+import sys
+import os
+
+# Add parent directory to path to import shared module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from shared.data_fetcher import fetch_prices
 from barra_model import BarraFactorModel
 from factor_analysis import FactorAnalyzer
 from risk_attribution import RiskAttributor
@@ -94,7 +100,7 @@ def extract_pca_factors():
         end_date = data.get('end_date', '2024-12-31')
 
         # Fetch returns
-        prices = yf.download(tickers, start=start_date, end=end_date, progress=False)['Adj Close']
+        prices = fetch_prices(tickers, start=start_date, end=end_date, progress=False)
         returns = prices.pct_change().dropna()
 
         # PCA
@@ -133,8 +139,8 @@ def calculate_factor_betas():
         end_date = data.get('end_date', '2024-12-31')
 
         # Fetch benchmark returns
-        benchmark_prices = yf.download(benchmark_tickers, start=start_date,
-                                      end=end_date, progress=False)['Adj Close']
+        benchmark_prices = fetch_prices(benchmark_tickers, start=start_date,
+                                      end=end_date, progress=False)
         benchmark_returns = benchmark_prices.pct_change().dropna()
 
         # Extract factors from benchmark
@@ -142,8 +148,8 @@ def calculate_factor_betas():
         analyzer.extract_pca_factors(n_factors)
 
         # Fetch asset returns
-        asset_prices = yf.download(asset_ticker, start=start_date,
-                                  end=end_date, progress=False)['Adj Close']
+        asset_prices = fetch_prices(asset_ticker, start=start_date,
+                                  end=end_date, progress=False)
         asset_returns = asset_prices.pct_change().dropna()
 
         # Calculate betas
@@ -181,7 +187,7 @@ def create_mimicking_portfolio():
         end_date = data.get('end_date', '2024-12-31')
 
         # Fetch returns
-        prices = yf.download(tickers, start=start_date, end=end_date, progress=False)['Adj Close']
+        prices = fetch_prices(tickers, start=start_date, end=end_date, progress=False)
         returns = prices.pct_change().dropna()
 
         # Extract factors
@@ -357,7 +363,7 @@ def comprehensive_factor_analysis():
         tilts = barra_model.factor_tilts(weights)
 
         # PCA analysis
-        prices = yf.download(tickers, start=start_date, end=end_date, progress=False)['Adj Close']
+        prices = fetch_prices(tickers, start=start_date, end=end_date, progress=False)
         returns = prices.pct_change().dropna()
         pca_analyzer = FactorAnalyzer(returns)
         pca_result = pca_analyzer.extract_pca_factors(3)

@@ -4,7 +4,13 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List
 import logging
-import yfinance as yf
+import sys
+import os
+
+# Add parent directory to path to import shared module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from shared.data_fetcher import fetch_prices
 from config import Config
 from utils import calculate_metrics, fetch_data
 
@@ -322,11 +328,18 @@ def worst_case_scenario(
 
     for ticker, weight in portfolio.items():
         try:
-            data = yf.download(ticker, period=lookback_period, progress=False)
+            prices = fetch_prices(ticker, period=lookback_period, progress=False)
+
+            # Convert Series to DataFrame if needed
+            if isinstance(prices, pd.Series):
+                data = prices.to_frame(name='Close')
+            else:
+                data = prices
+
             if data.empty:
                 continue
 
-            data['returns'] = data['Adj Close'].pct_change()
+            data['returns'] = data['Close'].pct_change()
             asset_returns = data['returns'].dropna()
 
             if portfolio_returns is None:

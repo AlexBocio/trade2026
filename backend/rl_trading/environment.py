@@ -2,7 +2,13 @@
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
+import sys
+import os
+
+# Add parent directory to path to import shared module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from shared.data_fetcher import fetch_prices
 
 class TradingEnvironment:
     """
@@ -25,7 +31,15 @@ class TradingEnvironment:
 
     def _load_data(self):
         """Load and preprocess market data."""
-        df = yf.download(self.ticker, period='2y', progress=False)
+        df = fetch_prices(self.ticker, period='2y', progress=False)
+
+        # Convert Series to DataFrame if needed
+        if isinstance(df, pd.Series):
+            df = df.to_frame(name='Close')
+
+        # Ensure we have Close column
+        if 'Close' not in df.columns and len(df.columns) == 1:
+            df = df.rename(columns={df.columns[0]: 'Close'})
 
         # Calculate indicators
         df['returns'] = df['Close'].pct_change()
@@ -158,7 +172,16 @@ class MultiAssetTradingEnvironment:
         """Load data for all tickers."""
         data = {}
         for ticker in self.tickers:
-            df = yf.download(ticker, period='2y', progress=False)
+            df = fetch_prices(ticker, period='2y', progress=False)
+
+            # Convert Series to DataFrame if needed
+            if isinstance(df, pd.Series):
+                df = df.to_frame(name='Close')
+
+            # Ensure we have Close column
+            if 'Close' not in df.columns and len(df.columns) == 1:
+                df = df.rename(columns={df.columns[0]: 'Close'})
+
             df['returns'] = df['Close'].pct_change()
             df = df.dropna()
             data[ticker] = df

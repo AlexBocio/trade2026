@@ -1,0 +1,71 @@
+# Multi-stage Dockerfile for Trade2026 Backend Services
+# Optimized for Python Flask microservices with shared module support
+
+FROM python:3.11-slim as base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Create app user for security
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app && \
+    chown -R appuser:appuser /app
+
+WORKDIR /app
+
+# ============================================================================
+# Builder stage - Install dependencies
+# ============================================================================
+FROM base as builder
+
+# Accept service name as build argument
+ARG SERVICE_NAME
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        make \
+        libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY --chown=appuser:appuser ${SERVICE_NAME}/requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# ============================================================================
+# Runtime stage - Minimal production image
+# ============================================================================
+FROM base as runtime
+
+# Accept service name as build argument
+ARG SERVICE_NAME
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /home/appuser/.local
+
+# Make sure scripts in .local are usable
+ENV PATH=/home/appuser/.local/bin:$PATH
+
+# Copy shared module first (required by all services)
+COPY --chown=appuser:appuser shared /app/shared
+
+# Copy application code for specific service
+COPY --chown=appuser:appuser ${SERVICE_NAME} /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose service port (will be overridden by docker-compose)
+EXPOSE 5000
+
+# Health check - Fixed to use /health instead of /api/health
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:5000/health', timeout=5)"
+
+# Default command (will be overridden by docker-compose)
+CMD ["python", "app.py"]

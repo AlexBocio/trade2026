@@ -2,9 +2,15 @@
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
 from datetime import datetime, timedelta
 import logging
+import sys
+import os
+
+# Add parent directory to path to import shared module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from shared.data_fetcher import fetch_prices
 from config import Config
 
 logger = logging.getLogger(__name__)
@@ -62,6 +68,14 @@ def fetch_price_data(ticker: str,
     logger.info(f"Fetching data for {ticker}")
 
     try:
+        if start_date and end_date:
+            prices = fetch_prices(ticker, start=start_date, end=end_date, progress=False)
+        else:
+            prices = fetch_prices(ticker, period=period, progress=False)
+
+        # For OHLCV data, we need to fallback to yfinance since unified fetcher only returns Close
+        # This is acceptable for meta-labeling which often needs full OHLCV
+        import yfinance as yf
         if start_date and end_date:
             data = yf.download(ticker, start=start_date, end=end_date, progress=False, auto_adjust=False)
         else:

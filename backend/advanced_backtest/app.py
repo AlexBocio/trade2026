@@ -3,8 +3,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
-import yfinance as yf
 from datetime import datetime, timedelta
+import sys
+import os
+
+# Add parent directory to path to import shared module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from shared.data_fetcher import fetch_prices
 
 from walk_forward import WalkForwardOptimizer, moving_average_crossover_strategy
 from cross_validation import CombinatorialPurgedCV
@@ -36,7 +42,11 @@ def fetch_price_data(ticker, start_date=None, end_date=None):
     if end_date is None:
         end_date = datetime.now().strftime('%Y-%m-%d')
 
-    data = yf.download(ticker, start=start_date, end=end_date, progress=False, auto_adjust=False)
+    data = fetch_prices(ticker, start=start_date, end=end_date, progress=False)
+
+    # Convert Series to DataFrame if needed
+    if isinstance(data, pd.Series):
+        data = data.to_frame(name='Close')
 
     if data.empty:
         raise ValueError(f"No data found for {ticker}")

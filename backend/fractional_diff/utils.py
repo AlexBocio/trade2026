@@ -2,9 +2,15 @@
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
 from datetime import datetime, timedelta
 import logging
+import sys
+import os
+
+# Add parent directory to path to import shared module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from shared.data_fetcher import fetch_prices
 from config import Config
 
 logger = logging.getLogger(__name__)
@@ -98,21 +104,26 @@ def fetch_price_data(
     logger.info(f"Fetching {ticker} from {start_date} to {end_date}")
 
     try:
-        data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+        # Fetch using unified data fetcher (returns Close prices by default)
+        price_series = fetch_prices(ticker, start=start_date, end=end_date, progress=False)
 
-        if data.empty:
-            raise ValueError(f"No data found for ticker: {ticker}")
-
-        if column not in data.columns:
-            # Handle multi-column case (when multiple tickers)
-            if column in ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']:
-                price_series = data[column]
-                if isinstance(price_series, pd.DataFrame):
-                    price_series = price_series.iloc[:, 0]  # Take first column
+        # If column is not 'Close', we need to fetch full data using original yf
+        # For now, unified fetcher only returns Close prices
+        if column != 'Close' and column != 'Adj Close':
+            # Fallback to yfinance for non-Close columns
+            import yfinance as yf
+            data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            if data.empty:
+                raise ValueError(f"No data found for ticker: {ticker}")
+            if column not in data.columns:
+                if column in ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']:
+                    price_series = data[column]
+                    if isinstance(price_series, pd.DataFrame):
+                        price_series = price_series.iloc[:, 0]
+                else:
+                    raise ValueError(f"Column '{column}' not found in data")
             else:
-                raise ValueError(f"Column '{column}' not found in data")
-        else:
-            price_series = data[column]
+                price_series = data[column]
 
         price_series = price_series.dropna()
 

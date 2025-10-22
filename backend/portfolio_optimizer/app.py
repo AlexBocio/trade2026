@@ -4,8 +4,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
-import yfinance as yf
+import sys
+import os
 from datetime import datetime, timedelta
+
+# Add parent directory to path to import shared module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from shared.data_fetcher import fetch_prices
 from optimizers import PortfolioOptimizer
 from covariance import CovarianceEstimator
 from covariance_cleaning import detone_covariance, detrend_covariance, detone_and_detrend
@@ -24,8 +30,8 @@ app = Flask(__name__)
 CORS(app)
 
 def fetch_price_data(tickers, period='2y'):
-    """Fetch historical price data."""
-    data = yf.download(tickers, period=period, progress=False, auto_adjust=False)['Adj Close']
+    """Fetch historical price data using unified data fetcher (IBKR + yfinance)."""
+    data = fetch_prices(tickers, period=period, progress=False)
     if isinstance(data, pd.Series):
         data = data.to_frame()
     return data
