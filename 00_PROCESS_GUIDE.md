@@ -6,6 +6,19 @@
 
 ---
 
+## 📚 MASTER GUIDELINES REFERENCE
+
+**This process guide is Trade2026-specific. It extends (not replaces) the universal master guidelines.**
+
+**ALWAYS read the master guidelines first:**
+- **Location**: `C:/ClaudeDesktop_Projects/ClaudeKnowledge/MASTER_GUIDELINES.md`
+- **Scope**: Universal patterns for ALL projects
+- **Key Sections**: Session Startup Protocol, Core Dev Rules, 6-Phase Workflow, Git Workflow
+
+**Master guidelines provide the foundation. This document adds Trade2026-specific documentation cascade requirements.**
+
+---
+
 ## 🔄 SESSION STARTUP CHECKLIST
 
 When starting ANY session, read these files IN ORDER:
@@ -296,13 +309,46 @@ SESSION_SUMMARY_YYYY-MM-DD.md (Session History)
 
 ---
 
+## 🤖 CLAUDE CODE INTEGRATION
+
+### Automatic Instructions (.claude folder)
+
+**Claude Code automatically loads instructions from `.claude/instructions.md` at session start!**
+
+**File**: `.claude/instructions.md`
+**Purpose**: Remind Claude to follow the process at EVERY session start
+**Status**: ✅ Configured
+
+**What it contains:**
+- Mandatory reading order (5 files)
+- Documentation cascade (7 steps)
+- Session end checklist
+- Current project status
+- Critical reminders (don't skip steps 4 & 5!)
+- Quick links to key documents
+
+**How it works:**
+1. User starts Claude Code session
+2. Claude automatically reads `.claude/instructions.md`
+3. Instructions are injected into context
+4. Claude is reminded to:
+   - Read process guide first
+   - Follow documentation cascade
+   - Update all master docs
+   - Complete session end checklist
+
+**This provides automatic enforcement of the process!**
+
+---
+
 ## ✅ PROCESS ADOPTION CHECKLIST
 
 To adopt this process:
 
 - [x] Process guide created (00_PROCESS_GUIDE.md)
-- [ ] Process guide added to README
-- [ ] Process guide added to .claude/settings (if applicable)
+- [x] Process guide added to README
+- [x] Process guide added to .claude/instructions.md
+- [x] Claude Code automatic instructions configured
 - [ ] All team members trained on process
 - [ ] Process validated in next session
 
