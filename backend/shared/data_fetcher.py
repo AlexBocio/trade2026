@@ -25,15 +25,15 @@ import requests
 import yfinance as yf
 from functools import lru_cache
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # QuestDB configuration
-QUESTDB_HOST = "localhost"
-QUESTDB_PORT = 9000
-QUESTDB_URL = f"http://{QUESTDB_HOST}:{QUESTDB_PORT}"
+# Use environment variable or default to Docker service name
+QUESTDB_URL = os.getenv("QUESTDB_URL", "http://questdb:9000")
 
 # IBKR symbols currently available in QuestDB
 IBKR_SYMBOLS = {'XLE', 'XLF', 'XLI', 'XLK', 'XLP', 'XLV', 'XLY',
