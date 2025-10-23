@@ -2,7 +2,21 @@
 
 **Mission**: Integrate backend (Trade2025) + frontend (GUI) + ML pipelines into one unified platform
 
-**Status**: ✅ Phases 1-5 COMPLETE (85% overall) - Production-ready for development/testing
+**Status**: ✅ Phases 1-6.7 COMPLETE, Phase 7 IN PROGRESS (92% overall)
+
+---
+
+## 🚨 START HERE - REQUIRED READING ORDER
+
+**If you're starting a new session, read these files IN ORDER:**
+
+1. **[00_PROCESS_GUIDE.md](./00_PROCESS_GUIDE.md)** ⭐ **READ THIS FIRST** - How to work (documentation cascade, session workflow)
+2. **[01_README_START_HERE.md](./01_README_START_HERE.md)** - This file - Project overview
+3. **[01_MASTER_PLAN.md](./01_MASTER_PLAN.md)** - Current status and phase details
+4. **[01_COMPLETION_TRACKER_UPDATED.md](./01_COMPLETION_TRACKER_UPDATED.md)** - Detailed task tracking
+5. **[SESSION_SUMMARY_[latest].md](.)** - What happened in last session
+
+**Why this order?** Process → Overview → Status → Tasks → History
 
 ---
 
