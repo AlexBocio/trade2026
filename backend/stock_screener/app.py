@@ -109,10 +109,12 @@ API_VERSION = "1.9.0"  # Updated for PROMPT 8 (Pairs Trading, Statistical Tests,
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint."""
+    import os
     return jsonify({
         'status': 'healthy',
         'service': 'stock_screener',
         'version': API_VERSION,
+        'port': int(os.environ.get('SERVICE_PORT', 5000)),
         'timestamp': datetime.now().isoformat()
     })
 
@@ -2985,5 +2987,8 @@ def analyze_symbol_scenarios_endpoint():
 
 
 if __name__ == '__main__':
-    logger.info(f"Starting Stock Screener API v{API_VERSION} on port 5000 (external: 5008)")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    import os
+    port = int(os.environ.get('SERVICE_PORT', 5000))
+
+    logger.info(f"Starting Stock Screener API v{API_VERSION} on port {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)

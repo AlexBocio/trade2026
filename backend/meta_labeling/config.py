@@ -4,7 +4,8 @@ class Config:
     """Configuration settings for meta-labeling system."""
 
     # Server
-    PORT = 5000
+    import os
+    PORT = int(os.getenv('SERVICE_PORT', 5000))
     HOST = '0.0.0.0'
     DEBUG = True
 

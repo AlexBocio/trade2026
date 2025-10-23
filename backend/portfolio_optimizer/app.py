@@ -850,10 +850,11 @@ def tail_risk_endpoint():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
+    import os
     return jsonify({
         'status': 'healthy',
         'service': 'portfolio-optimizer',
-        'port': 5001
+        'port': int(os.environ.get('SERVICE_PORT', 5000))
     })
 
 @app.route('/', methods=['GET'])
@@ -898,8 +899,11 @@ def root():
     })
 
 if __name__ == '__main__':
-    print("Starting Trade2025 Portfolio Optimizer v1.2.0")
-    print("Server running on http://localhost:5001")
+    import os
+    port = int(os.environ.get('SERVICE_PORT', 5000))
+
+    print("Starting Trade2026 Portfolio Optimizer v1.2.0")
+    print(f"Server running on http://localhost:{port}")
     print("")
     print("EXISTING Endpoints:")
     print("  - Mean-Variance, Black-Litterman, Risk Parity")
@@ -913,4 +917,4 @@ if __name__ == '__main__':
     print("  - POST /api/portfolio/tail-risk - Tail risk metrics")
     print("")
     print("Ready!")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True)

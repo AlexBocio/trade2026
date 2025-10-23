@@ -290,10 +290,11 @@ def list_agents():
 
 @app.route('/health', methods=['GET'])
 def health():
+    import os
     return jsonify({
         'status': 'healthy',
         'service': 'rl-trading',
-        'port': 5002
+        'port': int(os.environ.get('SERVICE_PORT', 5000))
     })
 
 
@@ -321,7 +322,10 @@ def root():
 
 
 if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('SERVICE_PORT', 5000))
+
     print("[START] Trade2026 RL Trading System")
-    print("[INFO] Server running on http://localhost:5002")
-    print("[INFO] API endpoints available at http://localhost:5002/")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print(f"[INFO] Server running on http://localhost:{port}")
+    print(f"[INFO] API endpoints available at http://localhost:{port}/")
+    app.run(host='0.0.0.0', port=port, debug=True)

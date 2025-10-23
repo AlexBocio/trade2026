@@ -24,10 +24,12 @@ models = {}
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
+    import os
     return jsonify({
         'status': 'healthy',
         'service': 'Factor Models & Risk Attribution',
-        'version': '1.0.0'
+        'version': '1.0.0',
+        'port': int(os.environ.get('SERVICE_PORT', 5000))
     })
 
 
@@ -393,6 +395,9 @@ def comprehensive_factor_analysis():
 
 
 if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('SERVICE_PORT', 5000))
+
     print("[START] Factor Models & Risk Attribution API")
     print("[INFO] Available endpoints:")
     print("  - POST /api/factors/barra")
@@ -403,6 +408,6 @@ if __name__ == '__main__':
     print("  - POST /api/risk/stress-test")
     print("  - POST /api/risk/budget")
     print("  - POST /api/factors/comprehensive")
-    print("\n[OK] Server running on http://localhost:5004\n")
+    print(f"\n[OK] Server running on http://localhost:{port}\n")
 
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True)

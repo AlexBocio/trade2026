@@ -8,7 +8,7 @@ class Config:
 
     # Flask configuration
     HOST = os.getenv('SIMULATION_HOST', '0.0.0.0')
-    PORT = int(os.getenv('SIMULATION_PORT', 5000))
+    PORT = int(os.getenv('SERVICE_PORT', 5000))
     DEBUG = os.getenv('SIMULATION_DEBUG', 'True').lower() == 'true'
 
     # Service metadata

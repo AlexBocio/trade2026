@@ -63,10 +63,12 @@ def fetch_price_data(ticker, start_date=None, end_date=None):
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
+    import os
     return jsonify({
         'status': 'healthy',
         'service': 'Advanced Backtesting Engine',
-        'version': '1.0.0'
+        'version': '1.0.0',
+        'port': int(os.environ.get('SERVICE_PORT', 5000))
     })
 
 
@@ -776,6 +778,9 @@ def compare_strategies_endpoint():
 
 
 if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('SERVICE_PORT', 5000))
+
     print("Starting Advanced Backtesting Engine...")
     print("Available endpoints:")
     print("  EXISTING:")
@@ -791,6 +796,6 @@ if __name__ == '__main__':
     print("  - POST /api/backtest/combinatorial-cv")
     print("  - POST /api/backtest/stochastic-dominance")
     print("  - POST /api/backtest/compare-strategies")
-    print("\nServer running on http://localhost:5003\n")
+    print(f"\nServer running on http://localhost:{port}\n")
 
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True)
