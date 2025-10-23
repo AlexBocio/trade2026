@@ -80,7 +80,11 @@ def query_questdb(sql_query: str) -> pd.DataFrame:
 
 def fetch_from_questdb(symbol: str, start_date: str, end_date: str) -> Optional[pd.Series]:
     """
-    Fetch price data from QuestDB (IBKR real-time data).
+    Fetch price data from QuestDB (IBKR real-time + historical data).
+
+    Queries both tables:
+    - market_data_l1: Real-time IBKR ticks (WAL-enabled)
+    - market_data_historical: Historical OHLCV bars (NO WAL, immediately queryable)
 
     Args:
         symbol: Stock ticker symbol
@@ -94,16 +98,28 @@ def fetch_from_questdb(symbol: str, start_date: str, end_date: str) -> Optional[
         return None
 
     try:
-        # Query for OHLC data
-        # Use 'close' field as the close price (last trade price)
+        # Query both tables and UNION the results
+        # Real-time data from market_data_l1 (recent ticks)
+        # Historical data from market_data_historical (daily bars)
         query = f"""
         SELECT
             timestamp,
             close as "Close"
-        FROM market_data_l1
-        WHERE symbol = '{symbol}'
-          AND timestamp >= '{start_date}'
-          AND timestamp < '{end_date}'
+        FROM (
+            SELECT timestamp, close
+            FROM market_data_l1
+            WHERE symbol = '{symbol}'
+              AND timestamp >= '{start_date}'
+              AND timestamp < '{end_date}'
+
+            UNION ALL
+
+            SELECT timestamp, close
+            FROM market_data_historical
+            WHERE symbol = '{symbol}'
+              AND timestamp >= '{start_date}'
+              AND timestamp < '{end_date}'
+        )
         ORDER BY timestamp
         """
 
@@ -113,7 +129,9 @@ def fetch_from_questdb(symbol: str, start_date: str, end_date: str) -> Optional[
             logger.warning(f"No IBKR data found for {symbol} in QuestDB")
             return None
 
-        # Return Close prices as Series
+        # Return Close prices as Series (deduplicate by keeping last value per timestamp)
+        df = df.drop_duplicates(subset=['timestamp'], keep='last')
+        df.set_index('timestamp', inplace=True)
         return df['Close']
 
     except Exception as e:
