@@ -1,0 +1,8 @@
+{
+  "symbol": "AAPL",
+  "side": "BUY",
+  "quantity": 10,
+  "order_type": "LIMIT",
+  "price": 150.00,
+  "account_id": "test_account"
+}

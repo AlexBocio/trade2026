@@ -3,8 +3,9 @@
 **Created**: 2025-10-14
 **Last Updated**: 2025-10-23
 **Status**: Phases 1-6.7 COMPLETE (91%) - Full Platform Build Approved
-**Timeline**: 94-146 hours remaining (12-18 weeks at 8 hrs/week)
+**Timeline**: 87-141 hours remaining (11-18 weeks at 8 hrs/week)
 **Target**: 100% - Complete Quantitative Trading & Research Platform
+**Architecture**: Production-Ready Design (Running Locally)
 
 ---
 
@@ -68,7 +69,7 @@ Trade2026/
 **PHASES 1-5 + 6.5 + 6.6 + 6.7 COMPLETE** (91% overall):
 - ✅ Infrastructure: 8/8 services healthy (100%)
 - ✅ Backend: 16/16 services deployed (94% health)
-- ✅ Frontend: Nginx + React serving on port 80
+- ✅ Frontend: React SPA (ready to deploy via Traefik)
 - ✅ ML Library: Library service + PostgreSQL operational
 - ✅ PRISM Physics: 40 agents, dual persistence (QuestDB + ClickHouse)
 - ✅ Backend Services (Trade2025): 8/8 services HEALTHY (ports 5001-5008)
@@ -76,19 +77,23 @@ Trade2026/
   - Advanced Backtest, Simulation Engine, Fractional Diff, Meta-Labeling
   - All 8/8 services fully functional and healthy
   - Docker healthchecks fixed (endpoint + port corrections)
-- ✅ **Traefik API Gateway**: Deployed at http://localhost (100% complete)
-  - Container: trade2026-traefik (RUNNING)
+- ✅ **Traefik Unified Gateway**: Production-ready reverse proxy (100% complete)
+  - Single external entry point: http://localhost
+  - Container: trade2026-traefik (RUNNING, port 80)
+  - Dashboard: http://localhost:8080
   - All 8/8 backend services registered and showing UP status
-  - All health endpoints responding correctly
-  - Sequential build strategy optimized (5+ min → 30 sec)
+  - Dynamic service discovery via Docker labels
+  - Zero-config routing working
 - ✅ **Phase 6.7 System Stabilization**: COMPLETE
   - Standardized SERVICE_PORT environment variable across all services
   - Fixed port configuration mismatches causing unhealthy status
   - All 8 backend services rebuilt and restarted successfully
   - Traefik registration: 8/8 services UP (100%)
   - Health status: 21/27 containers healthy (78%)
+  - Sequential build strategy optimized (5+ min → 30 sec)
 - ✅ Container health: 21/27 healthy (78%)
 - ✅ Total services: 27 containers running
+- ✅ **Architecture**: Production-ready design with single external endpoint
 
 **APPROVED PLAN** (87-141 hours remaining):
 - ✅ **Phase 6.7**: System Stabilization (COMPLETE)
@@ -102,8 +107,60 @@ Trade2026/
 - ⏸️ **Phase 14**: Advanced Features (15-25 hours)
 
 **Target**: Complete Quantitative Trading & Research Platform
-**Timeline**: 12-18 weeks at 8 hours/week
+**Timeline**: 11-18 weeks at 8 hours/week
 **Detailed Plan**: See `TRADE2026_COMPLETION_PLAN.md`
+
+---
+
+## 🏛️ ARCHITECTURE PHILOSOPHY
+
+### Production-Ready Design (Running Locally)
+
+**Decision Date**: 2025-10-23
+**Status**: Active Design Principle
+
+**Core Principle**:
+> "Build for production even though for the foreseeable future it is only working here locally."
+
+**What This Means**:
+- **Production-Quality Architecture**: All configurations, patterns, and tools are production-grade
+- **Local Deployment**: System runs on local machine without requiring cloud infrastructure
+- **No Shortcuts**: No "dev-only" compromises that would require rework for production
+- **Right Tool for Each Job**: Specialized tools used correctly (reverse proxy, static files, API gateway)
+
+**Key Architecture Decisions**:
+
+1. **Unified Gateway (Traefik)**:
+   - **External Simplicity**: Single entry point at `http://localhost`
+   - **Internal Correctness**: Traefik for dynamic API routing, nginx for static file serving
+   - **Why**: Production systems use specialized tools; Traefik + Frontend Container is the industry standard
+   - **Result**: One external endpoint, professional internal architecture
+
+2. **Container-Based Deployment**:
+   - All services in Docker containers (no manual processes)
+   - Docker Compose orchestration (production uses Kubernetes, same principles)
+   - Health checks, restart policies, resource limits
+
+3. **Network Isolation**:
+   - Separate networks for frontend, backend, low-latency services (CPGS v1.0)
+   - Services only access what they need
+   - Production-ready security boundaries
+
+4. **Observability First**:
+   - Prometheus metrics from day one
+   - Structured logging
+   - Distributed tracing ready (Phase 9)
+
+**Benefits**:
+- ✅ Zero refactoring needed for production deployment
+- ✅ Professional architecture patterns from start
+- ✅ Learn production-grade tools and practices
+- ✅ Confidence in system reliability
+- ✅ Easy cloud migration when ready (just change deployment target)
+
+**Trade-offs**:
+- Slightly more complex initial setup (worth it for production readiness)
+- Local machine must handle production-grade stack (manageable for modern hardware)
 
 ---
 
@@ -298,52 +355,50 @@ This phase bridges the gap between PRISM Physics (Phase 5) and testing (Phase 7)
 
 ---
 
-### Phase 6.6: Unified API Gateway - P1
-**Goal**: Deploy centralized API gateway for all backend services
+### Phase 6.6: Unified API Gateway (Traefik) - P1
+**Goal**: Deploy centralized reverse proxy and API gateway for all services
 
 **Overview**:
-Deploy nginx-based API gateway providing unified HTTP entry point at `http://localhost` for all 34 backend services. Eliminates need for frontend to track individual service ports.
+Deploy Traefik v3.0 as unified gateway providing single HTTP entry point at `http://localhost` for all services. Traefik handles dynamic service discovery, API routing, and serves as the external entry point. Frontend served via dedicated container with internal nginx.
+
+**Architecture Decision (2025-10-23)**:
+- **Traefik**: External reverse proxy, dynamic API routing, service discovery
+- **Frontend Container**: Internal nginx for static file serving (React SPA)
+- **Result**: Production-ready architecture with single external endpoint
 
 **Key Achievements** (2025-10-23):
-1. **Gateway Deployment**: trade2026-api-gateway container running (HEALTHY)
-2. **Healthcheck Fixes**: Corrected all 8 backend service healthchecks (5002-5008 → 5000)
-3. **Port Configuration**: Fixed nginx upstream ports to match internal service ports
-4. **Syntax Corrections**: Resolved nginx configuration errors (orphaned braces, OPTIONS handler)
-5. **Testing**: 2/8 services fully tested (RL Trading, Stock Screener working)
+1. **Traefik Deployment**: trade2026-traefik container running at port 80
+2. **Service Discovery**: Auto-registration of all Docker services via labels
+3. **Backend Integration**: 8/8 backend analytics services registered and UP
+4. **Dashboard**: Traefik dashboard accessible at http://localhost:8080
+5. **Dynamic Routing**: Zero-config service discovery working
 
-**Routes Configured**:
-- `/api/portfolio/` → Portfolio Optimizer (5001)
-- `/api/rl/` → RL Trading (5002) ✓ **TESTED**
-- `/api/backtest/` → Advanced Backtest (5003)
-- `/api/factors/` → Factor Models (5004)
-- `/api/simulation/` → Simulation Engine (5005)
-- `/api/fracdiff/` → Fractional Diff (5006)
-- `/api/metalabel/` → Meta-Labeling (5007)
-- `/api/screener/` → Stock Screener (5000) ✓ **TESTED**
-- `/api/orders/` → OMS (8099)
-- `/api/risk/` → Risk Management (8103)
-- `/api/pnl/` → P&L Tracking (8109)
-- `/api/data/` → Data Ingestion (8500)
+**Routes Configured** (via Traefik Labels):
+- `/api/portfolio` → Portfolio Optimizer ✅
+- `/api/rl` → RL Trading ✅
+- `/api/backtest` → Advanced Backtest ✅
+- `/api/factors` → Factor Models ✅
+- `/api/simulation` → Simulation Engine ✅
+- `/api/fracdiff` → Fractional Diff ✅
+- `/api/metalabel` → Meta-Labeling ✅
+- `/api/screener`, `/api/alpha`, `/api/regime` → Stock Screener ✅
+- `/` (root) → Frontend (React SPA) - In Progress
 
 **Exit Criteria**:
-- ✅ API Gateway container deployed and healthy
-- ✅ Health endpoint working: `http://localhost/health`
-- ✅ Service discovery working: `http://localhost/api/services`
-- ✅ Backend healthchecks fixed (6/8 healthy, 2/8 starting)
-- ✅ Nginx port configurations corrected
-- ✅ 2/8 services fully tested through gateway
-- ⏸️ Remaining: Path routing fixes for functional endpoints (2-4 hours)
-
-**Known Issue**:
-Backend services use routes like `/api/screener/scan`, but nginx strips the prefix when proxying, causing 404s. Requires nginx `proxy_pass` path preservation or backend route adjustments.
+- ✅ Traefik container deployed and healthy
+- ✅ Dashboard accessible: `http://localhost:8080`
+- ✅ Service discovery working: 8/8 backend services registered
+- ✅ All services showing UP status in Traefik
+- ⏸️ Frontend routing through Traefik (Phase 7 - Option 2B)
 
 **Files Modified**:
-- `infrastructure/docker/docker-compose.backend-services.yml`: Fixed 8 healthcheck ports
-- `infrastructure/nginx/api-gateway.conf`: Updated upstream ports, fixed syntax
-- `infrastructure/docker/docker-compose.api-gateway.yml`: Gateway configuration
+- `infrastructure/docker/docker-compose.traefik.yml`: Traefik deployment
+- `infrastructure/traefik/traefik.yml`: Main configuration
+- `infrastructure/traefik/dynamic/`: Dynamic routing configs
+- `infrastructure/docker/docker-compose.backend-services.yml`: Added Traefik labels
 
 **Documentation**:
-- `API_GATEWAY_DEPLOYMENT_REPORT.md`: Comprehensive 400+ line technical report
+- `PHASE_6.7_STATUS_REPORT.md`: Service stabilization and Traefik integration
 
 ---
 

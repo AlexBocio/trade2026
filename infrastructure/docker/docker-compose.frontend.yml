@@ -1,27 +1,50 @@
 version: '3.8'
 
+# Frontend Container - Option 2B Architecture
+# Phase 7: Production-ready Traefik integration
+# External access: http://localhost (via Traefik)
+# Internal: nginx serves React SPA static files
+
 services:
-  nginx:
+  frontend:
     build:
       context: ../../config/nginx
       dockerfile: Dockerfile
-    container_name: trade2026-nginx
-    ports:
-      - "80:80"
-      - "443:443"
+    container_name: trade2026-frontend
+    # No external ports - Traefik routes to this container internally
+    # ports:
+    #   - "80:80"    # REMOVED: Traefik uses port 80 externally
+    #   - "443:443"  # REMOVED: Traefik handles TLS termination
+    expose:
+      - "80"  # Internal port for Traefik to route to
     volumes:
       - ../../frontend/dist:/usr/share/nginx/html:ro
       - nginx_logs:/var/log/nginx
     networks:
-      - frontend
-      - backend
-      - lowlatency
+      - frontend  # Only frontend network (Traefik connects here)
     restart: unless-stopped
     labels:
-      - "com.trade2026.service=nginx"
-      - "com.trade2026.type=gateway"
+      # Trade2026 metadata
+      - "com.trade2026.service=frontend"
+      - "com.trade2026.type=ui"
+
+      # Traefik routing labels
+      - "traefik.enable=true"
+      - "traefik.docker.network=trade2026-frontend"
+
+      # Router: Match root path and all unmatched paths (SPA fallback)
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.priority=1"  # Lowest priority (fallback)
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.routers.frontend.service=frontend"
+
+      # Service: Point to internal nginx port
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+      # Middleware: None for now (compression handled by nginx)
+      # - "traefik.http.routers.frontend.middlewares=compression@file"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
       timeout: 10s
       retries: 3

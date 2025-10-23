@@ -1,0 +1,56 @@
+# Traefik Dynamic Configuration - Frontend Routing
+# Phase 7 (Option 2B): Frontend routing via Traefik
+# NOTE: Primary routing done via Docker labels in docker-compose.frontend.yml
+#       This file documents the routing patterns for reference
+
+http:
+  # ========================================
+  # Frontend Middlewares (Local Dev)
+  # ========================================
+  middlewares:
+    # Frontend-specific middleware chain (no HTTPS redirect for local dev)
+    frontend-local:
+      chain:
+        middlewares:
+          - compression
+          - cors-permissive
+
+    # SPA fallback (handle client-side routing)
+    spa-fallback:
+      errors:
+        status:
+          - "404"
+        service: frontend
+        query: "/index.html"
+
+  # ========================================
+  # Frontend Routing (Reference Only)
+  # ========================================
+  # Actual routing configured via Docker labels in docker-compose.frontend.yml
+  #
+  # Expected behavior:
+  #   http://localhost/          → frontend container (nginx) → React SPA
+  #   http://localhost/api/*     → backend services (auto-discovered)
+  #   http://localhost:8080      → Traefik dashboard
+  #
+  # Docker labels on frontend container:
+  #   traefik.enable=true
+  #   traefik.http.routers.frontend.rule=PathPrefix(`/`)
+  #   traefik.http.routers.frontend.priority=1
+  #   traefik.http.routers.frontend.entrypoints=web
+  #   traefik.http.routers.frontend.service=frontend
+  #   traefik.http.routers.frontend.middlewares=frontend-local
+  #   traefik.http.services.frontend.loadbalancer.server.port=80
+  #
+  # Priority: 1 (lowest - fallback for unmatched paths)
+  # Backend API routes have higher priority (10+) to match first
+
+# ========================================
+# Production Notes
+# ========================================
+# For production deployment:
+# 1. Enable HTTPS redirect in traefik.yml entryPoints
+# 2. Add TLS certificates via Let's Encrypt or manual cert
+# 3. Update middleware chain to use 'secure-headers'
+# 4. Consider adding rate limiting for frontend
+# 5. Update CORS origins to production domain

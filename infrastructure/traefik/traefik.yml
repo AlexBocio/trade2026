@@ -13,17 +13,22 @@ global:
 # Entry Points
 # ============================================
 entryPoints:
-  # HTTP entry point (port 80) - redirects to HTTPS
+  # HTTP entry point (port 80)
+  # Local dev: HTTP only (no redirect)
+  # Production: Uncomment redirections block below to enforce HTTPS
   web:
     address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-          permanent: true
+    # PRODUCTION-READY: Uncomment lines below to redirect HTTP → HTTPS
+    # http:
+    #   redirections:
+    #     entryPoint:
+    #       to: websecure
+    #       scheme: https
+    #       permanent: true
 
   # HTTPS entry point (port 443) - TLS termination
+  # Local dev: Not used (HTTP only)
+  # Production: Enable when you have TLS certs
   websecure:
     address: ":443"
     http:
