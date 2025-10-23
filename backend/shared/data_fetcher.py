@@ -135,20 +135,35 @@ def fetch_from_yfinance(tickers: Union[str, List[str]],
         progress: Show progress bar
 
     Returns:
-        Series or DataFrame with Adj Close prices
+        Series or DataFrame with Close prices (auto-adjusted by yfinance)
     """
     try:
+        # Note: yfinance now auto-adjusts by default (auto_adjust=True)
+        # Returns MultiIndex DataFrame with (Price, Ticker) structure
         data = yf.download(tickers, start=start, end=end, progress=progress)
 
         if data.empty:
             logger.warning(f"No yfinance data for {tickers}")
             return pd.DataFrame() if isinstance(tickers, list) else pd.Series()
 
-        # Return Adj Close column(s)
-        if 'Adj Close' in data.columns:
-            return data['Adj Close']
+        # Extract Close prices from MultiIndex structure
+        # yfinance returns ('Close', 'TICKER') instead of 'Adj Close'
+        if data.columns.nlevels == 2:
+            # MultiIndex structure - extract 'Close' level
+            if 'Close' in data.columns.get_level_values(0):
+                close_data = data['Close']
+                return close_data
+            else:
+                logger.warning(f"No Close data in yfinance response for {tickers}")
+                return pd.DataFrame() if isinstance(tickers, list) else pd.Series()
         else:
-            return data
+            # Fallback for older yfinance versions or single column
+            if 'Close' in data.columns:
+                return data['Close']
+            elif 'Adj Close' in data.columns:
+                return data['Adj Close']
+            else:
+                return data
 
     except Exception as e:
         logger.error(f"Error fetching from yfinance: {e}")
