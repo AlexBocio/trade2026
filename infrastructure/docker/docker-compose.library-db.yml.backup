@@ -7,8 +7,8 @@ services:
     # Verified: "Official Image" badge on Docker Hub
     image: postgres:16-alpine
 
-    container_name: trade2026-postgres-library
-    hostname: trade2026-postgres-library
+    container_name: postgres-library
+    hostname: postgres-library
 
     # Environment variables
     environment:

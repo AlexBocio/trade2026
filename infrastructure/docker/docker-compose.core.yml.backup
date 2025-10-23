@@ -23,7 +23,7 @@ services:
   # ============================================
   nats:
     image: nats:2.10-alpine
-    container_name: trade2026-nats
+    container_name: nats
     command:
       - "-js"
       - "-m=8222"
@@ -53,7 +53,7 @@ services:
   # ============================================
   valkey:
     image: valkey/valkey:8-alpine
-    container_name: trade2026-valkey
+    container_name: valkey
     command: ["valkey-server", "--appendonly", "yes", "--maxmemory", "2gb", "--maxmemory-policy", "allkeys-lru"]
     ports:
       - "6379:6379"
@@ -79,7 +79,7 @@ services:
   # ============================================
   questdb:
     image: questdb/questdb:latest
-    container_name: trade2026-questdb
+    container_name: questdb
     ports:
       - "9000:9000"   # HTTP API
       - "8812:8812"   # Postgres wire protocol
@@ -107,7 +107,7 @@ services:
   # ============================================
   clickhouse:
     image: clickhouse/clickhouse-server:24.9
-    container_name: trade2026-clickhouse
+    container_name: clickhouse
     ports:
       - "8123:8123"   # HTTP API
       - "9001:9000"   # Native TCP (mapped to 9001 to avoid QuestDB conflict)
@@ -142,7 +142,7 @@ services:
   # ============================================
   seaweedfs:
     image: chrislusf/seaweedfs:latest
-    container_name: trade2026-seaweedfs
+    container_name: seaweedfs
     command:
       - "server"
       - "-s3"
@@ -170,7 +170,7 @@ services:
   # ============================================
   opensearch:
     image: opensearchproject/opensearch:2
-    container_name: trade2026-opensearch
+    container_name: opensearch
     ports:
       - "9200:9200"   # REST API
       - "9600:9600"   # Performance analyzer
@@ -208,7 +208,7 @@ services:
   # ============================================
   authn:
     image: localhost/authn:latest
-    container_name: trade2026-authn
+    container_name: authn
     build:
       context: ../../backend/apps/authn
       dockerfile: Dockerfile
@@ -244,7 +244,7 @@ services:
   # ============================================
   opa:
     image: localhost/opa:latest
-    container_name: trade2026-opa
+    container_name: opa
     build:
       context: ../../backend/apps/opa_authorizer
       dockerfile: Dockerfile

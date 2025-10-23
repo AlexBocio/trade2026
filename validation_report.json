@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-10-22T13:49:32.651177",
+  "infrastructure": {
+    "NATS": true,
+    "QuestDB": false,
+    "ClickHouse": true,
+    "Valkey": true
+  },
+  "backend_services": [
+    {
+      "name": "Portfolio Optimizer",
+      "port": 5001,
+      "healthy": false,
+      "response_time": null,
+      "details": {
+        "error": "Connection refused (service not running?)"
+      }
+    },
+    {
+      "name": "RL Trading",
+      "port": 5002,
+      "healthy": false,
+      "response_time": null,
+      "details": {
+        "error": "Connection refused (service not running?)"
+      }
+    },
+    {
+      "name": "Advanced Backtest",
+      "port": 5003,
+      "healthy": false,
+      "response_time": null,
+      "details": {
+        "error": "Connection refused (service not running?)"
+      }
+    },
+    {
+      "name": "Factor Models",
+      "port": 5004,
+      "healthy": false,
+      "response_time": null,
+      "details": {
+        "error": "Connection refused (service not running?)"
+      }
+    },
+    {
+      "name": "Simulation Engine",
+      "port": 5005,
+      "healthy": false,
+      "response_time": null,
+      "details": {
+        "error": "Connection refused (service not running?)"
+      }
+    },
+    {
+      "name": "Fractional Diff",
+      "port": 5006,
+      "healthy": false,
+      "response_time": null,
+      "details": {
+        "error": "Connection refused (service not running?)"
+      }
+    },
+    {
+      "name": "Meta-Labeling",
+      "port": 5007,
+      "healthy": false,
+      "response_time": null,
+      "details": {
+        "error": "Connection refused (service not running?)"
+      }
+    },
+    {
+      "name": "Stock Screener",
+      "port": 5008,
+      "healthy": false,
+      "response_time": null,
+      "details": {
+        "error": "Connection refused (service not running?)"
+      }
+    }
+  ],
+  "data_fetcher_test": {
+    "status": "error",
+    "error": "('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))"
+  },
+  "summary": {
+    "infrastructure_health": "3/4",
+    "services_health": "0/8",
+    "overall_status": "degraded"
+  }
+}

@@ -405,4 +405,4 @@ if __name__ == '__main__':
     print("  - POST /api/factors/comprehensive")
     print("\n[OK] Server running on http://localhost:5004\n")
 
-    app.run(host='0.0.0.0', port=5004, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

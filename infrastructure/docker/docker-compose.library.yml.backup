@@ -6,8 +6,8 @@ services:
       context: ../../library/apps/library
       dockerfile: Dockerfile
 
-    container_name: trade2026-library
-    hostname: trade2026-library
+    container_name: library
+    hostname: library
 
     # Environment variables
     environment:

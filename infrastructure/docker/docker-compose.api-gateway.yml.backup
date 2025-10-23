@@ -1,0 +1,55 @@
+# API Gateway for Trade2026
+# Single entry point for all backend services
+# All internal services communicate via Docker networks
+
+version: '3.8'
+
+networks:
+  frontend:
+    name: trade2026-frontend
+    external: true
+  backend:
+    name: trade2026-backend
+    external: true
+  lowlatency:
+    name: trade2026-lowlatency
+    external: true
+
+services:
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway
+    hostname: api-gateway
+    ports:
+      - "80:80"      # ONLY external port exposed
+      - "443:443"    # HTTPS (for future SSL)
+    volumes:
+      - ../nginx/api-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - frontend
+      - backend
+      - lowlatency
+    environment:
+      - NGINX_ENTRYPOINT_QUIET_LOGS=1
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      - portfolio-optimizer
+      - rl-trading
+      - advanced-backtest
+      - factor-models
+      - simulation-engine
+      - fractional-diff
+      - meta-labeling
+      - stock-screener

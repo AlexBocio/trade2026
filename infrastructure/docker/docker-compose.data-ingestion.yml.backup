@@ -18,7 +18,7 @@ services:
   # ============================================
   data-ingestion:
     image: localhost/data-ingestion:latest
-    container_name: trade2026-data-ingestion
+    container_name: data-ingestion
     build:
       context: ../../backend/apps/data_ingestion
       dockerfile: Dockerfile

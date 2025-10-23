@@ -24,12 +24,12 @@ services:
   # Normalizer - Data Normalization (ticks → OHLCV)
   normalizer:
     image: localhost/normalizer:latest
-    container_name: trade2026-normalizer
+    container_name: normalizer
     build:
       context: ../../backend/apps/normalizer
       dockerfile: Dockerfile
     ports:
-      - "8091:8081"
+      - "8081:8081"
     volumes:
       - ../../config/backend/normalizer:/app/config:ro
     networks:
@@ -62,7 +62,7 @@ services:
   # Sink-Ticks - Data Lake Sink (Ticks)
   sink-ticks:
     image: localhost/sink-ticks:latest
-    container_name: trade2026-sink-ticks
+    container_name: sink-ticks
     build:
       context: ../../backend/apps/sink_ticks
       dockerfile: Dockerfile
@@ -99,7 +99,7 @@ services:
   # Sink-Alt - Alternative Data Sink
   sink-alt:
     image: localhost/sink-alt:latest
-    container_name: trade2026-sink-alt
+    container_name: sink-alt
     build:
       context: ../../backend/apps/sink_alt
       dockerfile: Dockerfile
@@ -142,15 +142,15 @@ services:
   # Depend on P1 services
   # ============================================
 
-  # Market Data Gateway - Market Data Ingestion
-  market-data-gateway:
-    image: localhost/market-data-gateway:latest
-    container_name: trade2026-market-data-gateway
+  # Gateway - Market Data Ingestion
+  gateway:
+    image: localhost/gateway:latest
+    container_name: gateway
     build:
       context: ../../backend/apps/gateway
       dockerfile: Dockerfile
     ports:
-      - "8082:8080"  # Changed to 8082 (8080 conflicts with Traefik, 8081 in use)
+      - "8080:8080"
     volumes:
       - ../../config/backend/gateway:/app/config:ro
       - ../../secrets:/secrets:ro
@@ -176,21 +176,15 @@ services:
       valkey:
         condition: service_healthy
     labels:
-      - "com.trade2026.service=market-data-gateway"
+      - "com.trade2026.service=gateway"
       - "com.trade2026.cpgs.version=1.0"
       - "com.trade2026.priority=P2"
       - "com.trade2026.network.lane=frontend,lowlatency,backend"
-      # Traefik labels for API routing
-      - "traefik.enable=true"
-      - "traefik.http.routers.market-data.rule=PathPrefix(`/api/market`)"
-      - "traefik.http.routers.market-data.entrypoints=web"
-      - "traefik.http.services.market-data.loadbalancer.server.port=8080"
-      - "traefik.docker.network=trade2026-frontend"
 
   # Live Gateway - Exchange Connectivity
   live-gateway:
     image: localhost/live-gateway:latest
-    container_name: trade2026-live-gateway
+    container_name: live-gateway
     build:
       context: ../../backend/apps/live_gateway
       dockerfile: Dockerfile
@@ -232,7 +226,7 @@ services:
   # Risk - Pre-Trade Risk Checks
   risk:
     image: localhost/risk:latest
-    container_name: trade2026-risk
+    container_name: risk
     build:
       context: ../../backend/apps/risk
       dockerfile: Dockerfile
@@ -270,7 +264,7 @@ services:
   # OMS - Order Management System
   oms:
     image: localhost/oms:latest
-    container_name: trade2026-oms
+    container_name: oms
     build:
       context: ../../backend/apps/oms
       dockerfile: Dockerfile
@@ -318,7 +312,7 @@ services:
   # PTRC - P&L, Tax, Risk, Compliance
   ptrc:
     image: localhost/ptrc:latest
-    container_name: trade2026-ptrc
+    container_name: ptrc
     build:
       context: ../../backend/apps/ptrc
       dockerfile: Dockerfile
@@ -353,3 +347,153 @@ services:
       - "com.trade2026.priority=P4"
       - "com.trade2026.network.lane=frontend,backend"
 
+  # ============================================
+  # PRIORITY 5 SERVICES - ML/Optional
+  # Can be deferred to Phase 4
+  # ============================================
+
+  # Model Serving - ML Inference
+  serving:
+    image: localhost/serving:latest
+    container_name: serving
+    build:
+      context: ../../backend/apps/model_serving
+      dockerfile: Dockerfile
+    ports:
+      - "8103:8103"
+      - "9103:9103"
+    volumes:
+      - ../../config/backend/model_serving:/app/config:ro
+    networks:
+      - frontend
+      - lowlatency
+      - backend
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+      - FEAST_REPO_PATH=/app/feast
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8103/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    depends_on:
+      valkey:
+        condition: service_healthy
+    labels:
+      - "com.trade2026.service=serving"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.priority=P5"
+      - "com.trade2026.network.lane=frontend,lowlatency,backend"
+      - "com.trade2026.optional=true"
+
+  # Backtest Orchestrator - Backtesting Engine
+  bt-orchestrator:
+    image: localhost/bt-orchestrator:latest
+    container_name: bt-orchestrator
+    build:
+      context: ../../backend/apps/bt_orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "8095:8095"
+    volumes:
+      - ../../config/backend/bt_orchestrator:/app/config:ro
+    networks:
+      - frontend
+      - backend
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_started
+    labels:
+      - "com.trade2026.service=bt-orchestrator"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.priority=P5"
+      - "com.trade2026.network.lane=frontend,backend"
+      - "com.trade2026.optional=true"
+
+  # ML Training - Distributed Training
+  ml-training:
+    image: localhost/ml-training:latest
+    container_name: ml-training
+    build:
+      context: ../../backend/apps/ml_training
+      dockerfile: Dockerfile
+    ports:
+      - "8102:8102"
+    volumes:
+      - ../../config/backend/ml_training:/app/config:ro
+    networks:
+      - backend
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8102/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_started
+    labels:
+      - "com.trade2026.service=ml-training"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.priority=P5"
+      - "com.trade2026.network.lane=backend"
+      - "com.trade2026.optional=true"
+
+  # Marketplace - Strategy Hosting
+  marketplace:
+    image: localhost/marketplace:latest
+    container_name: marketplace
+    build:
+      context: ../../backend/apps/marketplace
+      dockerfile: Dockerfile
+    ports:
+      - "8350:8350"
+    volumes:
+      - ../../config/backend/marketplace:/app/config:ro
+    networks:
+      - frontend
+      - backend
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8350/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      seaweedfs:
+        condition: service_started
+    labels:
+      - "com.trade2026.service=marketplace"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.priority=P5"
+      - "com.trade2026.network.lane=frontend,backend"
+      - "com.trade2026.optional=true"

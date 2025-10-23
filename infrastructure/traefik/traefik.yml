@@ -1,0 +1,184 @@
+# Traefik v3.0 Static Configuration
+# Phase 15.6: CPGS v1.0 Compliant Reverse Proxy
+# Single ingress point for all HTTP/HTTPS traffic
+
+# ============================================
+# Global Configuration
+# ============================================
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# ============================================
+# Entry Points
+# ============================================
+entryPoints:
+  # HTTP entry point (port 80) - redirects to HTTPS
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  # HTTPS entry point (port 443) - TLS termination
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        options: modern@file
+        certResolver: letsencrypt  # Production: Let's Encrypt
+    # HTTP/2 enabled by default
+    http2:
+      maxConcurrentStreams: 250
+
+  # gRPC with TLS (optional - uncomment if needed)
+  # grpc:
+  #   address: ":8443"
+  #   http:
+  #     tls:
+  #       options: modern@file
+
+  # Traefik dashboard/API (dev only - remove in prod)
+  traefik:
+    address: ":8080"
+
+# ============================================
+# Providers
+# ============================================
+providers:
+  # Docker provider - auto-discover services with labels
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    watch: true
+    exposedByDefault: false  # CPGS: explicit opt-in via labels
+    network: trade2026-frontend
+    defaultRule: "Host(`{{ normalize .Name }}.local`)"
+
+  # File provider - load dynamic configs from directory
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# ============================================
+# API & Dashboard
+# ============================================
+api:
+  dashboard: true
+  insecure: true   # DEV ONLY - use Traefik auth in production
+  debug: false
+
+# ============================================
+# Logging
+# ============================================
+log:
+  level: INFO  # DEBUG | INFO | WARN | ERROR
+  format: json
+  filePath: /var/log/traefik/traefik.log
+
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "200-299"
+      - "400-499"
+      - "500-599"
+    retryAttempts: true
+    minDuration: "10ms"
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop
+    headers:
+      defaultMode: keep
+      names:
+        User-Agent: keep
+        Authorization: drop
+        Cookie: drop
+
+# ============================================
+# Metrics
+# ============================================
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+    entryPoint: traefik
+    manualRouting: false
+
+# ============================================
+# TLS Configuration
+# ============================================
+# Certificate resolvers for automatic TLS (production)
+certificatesResolvers:
+  # Let's Encrypt (production)
+  letsencrypt:
+    acme:
+      email: admin@trade2026.local
+      storage: /etc/traefik/acme/acme.json
+      # Staging server for testing (comment out for prod)
+      # caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+      # HTTP challenge
+      httpChallenge:
+        entryPoint: web
+
+      # TLS challenge (alternative)
+      # tlsChallenge: {}
+
+      # DNS challenge (for wildcard certs - requires DNS provider)
+      # dnsChallenge:
+      #   provider: cloudflare
+      #   delayBeforeCheck: 0
+
+# ============================================
+# Tracing (optional - for distributed tracing)
+# ============================================
+# tracing:
+#   jaeger:
+#     samplingServerURL: http://jaeger:5778/sampling
+#     localAgentHostPort: jaeger:6831
+
+# ============================================
+# Pilot (optional - Traefik Cloud)
+# ============================================
+# pilot:
+#   token: "your-pilot-token"
+
+# ============================================
+# Experimental Features
+# ============================================
+# experimental:
+#   plugins: {}
+#   localPlugins: {}
+
+# ============================================
+# ServersTransport (default settings for proxied requests)
+# ============================================
+serversTransport:
+  insecureSkipVerify: false  # Validate backend TLS certs
+  rootCAs:
+    - /etc/traefik/certs/ca.crt  # Internal CA for mTLS
+  maxIdleConnsPerHost: 200
+  forwardingTimeouts:
+    dialTimeout: 30s
+    responseHeaderTimeout: 0s
+    idleConnTimeout: 90s
+
+# ============================================
+# Host Resolver (DNS)
+# ============================================
+hostResolver:
+  cnameFlattening: true
+  resolvConfig: /etc/resolv.conf
+  resolvDepth: 5

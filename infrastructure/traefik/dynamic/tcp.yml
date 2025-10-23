@@ -1,0 +1,105 @@
+# Traefik Dynamic Configuration - TCP Routers
+# Phase 15.6: CPGS v1.0 - TCP/gRPC routing with TLS
+
+tcp:
+  # ========================================
+  # TCP Routers (for gRPC services)
+  # ========================================
+  routers:
+    # Example: Model Serving gRPC
+    serving-grpc:
+      rule: "HostSNI(`serving.local`)"
+      entryPoints:
+        - grpc
+      service: serving-grpc
+      tls:
+        options: modern
+        passthrough: false  # Terminate TLS at Traefik
+        # Set to true if backend handles TLS (mTLS)
+        certResolver: letsencrypt
+
+    # Example: NATS with TLS (if exposed externally)
+    # nats-tls:
+    #   rule: "HostSNI(`nats.local`)"
+    #   entryPoints:
+    #     - nats
+    #   service: nats-tls
+    #   tls:
+    #     options: modern
+    #     passthrough: true  # NATS handles its own TLS
+
+  # ========================================
+  # TCP Services
+  # ========================================
+  services:
+    # Model Serving gRPC backend
+    serving-grpc:
+      loadBalancer:
+        servers:
+          - address: "serving:8104"
+        terminationDelay: 100
+        proxyProtocol:
+          version: 2
+
+    # NATS backend (if needed)
+    # nats-tls:
+    #   loadBalancer:
+    #     servers:
+    #       - address: "nats:4222"
+
+  # ========================================
+  # Servers Transports (TLS to backend)
+  # ========================================
+  serversTransports:
+    # Transport for internal mTLS to gRPC services
+    grpc-mtls:
+      serverName: serving.local
+      insecureSkipVerify: false  # Validate backend cert
+      rootCAs:
+        - /etc/traefik/certs/ca.crt
+      certificates:
+        - certFile: /etc/traefik/certs/traefik-client.crt
+          keyFile: /etc/traefik/certs/traefik-client.key
+      peerCertURI: ""
+
+    # Transport for plain TCP (no backend TLS)
+    tcp-plain:
+      dialTimeout: 30s
+      dialKeepAlive: 30s
+
+# ========================================
+# Entry Point Configuration (add to traefik.yml)
+# ========================================
+# To enable gRPC routing, add this to traefik/traefik.yml:
+#
+# entryPoints:
+#   grpc:
+#     address: ":8443"
+#     http:
+#       tls:
+#         options: modern@file
+#
+# And expose port 8443 in docker-compose.traefik.yml:
+#   ports:
+#     - "8443:8443"  # gRPC with TLS
+#
+# ========================================
+# Usage Notes
+# ========================================
+#
+# 1. gRPC with TLS termination at Traefik:
+#    - passthrough: false
+#    - Traefik terminates TLS, forwards plain gRPC to backend
+#    - Simplest option for internal services
+#
+# 2. gRPC with passthrough (backend mTLS):
+#    - passthrough: true
+#    - Traefik only routes based on SNI, doesn't decrypt
+#    - Backend service handles TLS/mTLS
+#    - Required if clients need mutual TLS with backend
+#
+# 3. gRPC via HTTP/2 (alternative):
+#    - Use HTTP router with h2c or TLS
+#    - Simpler configuration, works with standard entrypoints
+#    - Example in service labels
+#

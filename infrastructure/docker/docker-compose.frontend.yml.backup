@@ -5,7 +5,7 @@ services:
     build:
       context: ../../config/nginx
       dockerfile: Dockerfile
-    container_name: trade2026-nginx
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
@@ -15,7 +15,6 @@ services:
     networks:
       - frontend
       - backend
-      - lowlatency
     restart: unless-stopped
     labels:
       - "com.trade2026.service=nginx"
@@ -38,6 +37,3 @@ networks:
   backend:
     external: true
     name: trade2026-backend
-  lowlatency:
-    external: true
-    name: trade2026-lowlatency

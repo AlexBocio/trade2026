@@ -324,4 +324,4 @@ if __name__ == '__main__':
     print("[START] Trade2026 RL Trading System")
     print("[INFO] Server running on http://localhost:5002")
     print("[INFO] API endpoints available at http://localhost:5002/")
-    app.run(host='0.0.0.0', port=5002, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

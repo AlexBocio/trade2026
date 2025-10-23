@@ -1,0 +1,223 @@
+# Traefik Dynamic Configuration - Middlewares
+# Phase 15.6: CPGS v1.0 - Security and routing middlewares
+
+http:
+  middlewares:
+    # ========================================
+    # HTTPS Redirect
+    # ========================================
+    redirect-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+        port: "443"
+
+    # ========================================
+    # Security Headers
+    # ========================================
+    secure-headers:
+      headers:
+        # SSL/TLS headers
+        sslRedirect: true
+        stsSeconds: 31536000  # 1 year HSTS
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+
+        # Security headers
+        frameDeny: true  # Prevent clickjacking
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=()"
+
+        # CSP (Content Security Policy)
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:; frame-ancestors 'none'"
+
+        # Custom headers
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+          Server: ""  # Hide server version
+
+    # ========================================
+    # Rate Limiting
+    # ========================================
+    rate-limit-basic:
+      rateLimit:
+        average: 100  # requests per second
+        period: 1s
+        burst: 50
+
+    rate-limit-strict:
+      rateLimit:
+        average: 10
+        period: 1s
+        burst: 5
+
+    rate-limit-api:
+      rateLimit:
+        average: 1000  # Higher limit for API services
+        period: 1s
+        burst: 200
+        sourceCriterion:
+          ipStrategy:
+            depth: 1  # Use X-Forwarded-For depth
+
+    # ========================================
+    # Compression
+    # ========================================
+    compression:
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+          - "application/grpc"
+        minResponseBodyBytes: 1024
+
+    # ========================================
+    # CORS (Cross-Origin Resource Sharing)
+    # ========================================
+    cors-permissive:
+      headers:
+        accessControlAllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+          - "OPTIONS"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+        accessControlAllowOriginList:
+          - "http://localhost:3000"
+          - "http://localhost:8080"
+          - "https://localhost"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    cors-strict:
+      headers:
+        accessControlAllowMethods:
+          - "GET"
+          - "POST"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+        accessControlAllowOriginList:
+          - "https://trade2026.local"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600
+        addVaryHeader: true
+
+    # ========================================
+    # Path Stripping
+    # ========================================
+    strip-prefix-api:
+      stripPrefix:
+        prefixes:
+          - "/api"
+        forceSlash: false
+
+    strip-prefix-v1:
+      stripPrefix:
+        prefixes:
+          - "/v1"
+        forceSlash: false
+
+    # ========================================
+    # IP Whitelisting (optional - for admin endpoints)
+    # ========================================
+    whitelist-local:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "::1/128"
+          - "172.20.0.0/16"  # Frontend network
+          - "172.21.0.0/16"  # Backend network
+          - "172.22.0.0/16"  # Lowlatency network
+
+    # ========================================
+    # Circuit Breaker
+    # ========================================
+    circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.25"
+        checkPeriod: "10s"
+        fallbackDuration: "30s"
+        recoveryDuration: "10s"
+
+    # ========================================
+    # Retry
+    # ========================================
+    retry-policy:
+      retry:
+        attempts: 3
+        initialInterval: "100ms"
+
+    # ========================================
+    # Buffering (for large requests)
+    # ========================================
+    buffering:
+      buffering:
+        maxRequestBodyBytes: 10485760  # 10 MB
+        memRequestBodyBytes: 2097152   # 2 MB
+        maxResponseBodyBytes: 10485760
+        memResponseBodyBytes: 2097152
+        retryExpression: "IsNetworkError() && Attempts() < 2"
+
+    # ========================================
+    # Authentication (Basic Auth - dev/testing)
+    # ========================================
+    # auth-basic:
+    #   basicAuth:
+    #     users:
+    #       - "admin:$apr1$xyz..."  # htpasswd generated
+    #     realm: "Trade2025 Admin"
+    #     removeHeader: true
+
+    # ========================================
+    # Forward Auth (OAuth2/OIDC)
+    # ========================================
+    # forward-auth:
+    #   forwardAuth:
+    #     address: "http://authn:8114/verify"
+    #     trustForwardHeader: true
+    #     authResponseHeaders:
+    #       - "X-User-Id"
+    #       - "X-User-Roles"
+
+# ========================================
+# Middleware Chains
+# ========================================
+http:
+  middlewares:
+    # Standard chain for web UIs
+    web-standard:
+      chain:
+        middlewares:
+          - redirect-https
+          - secure-headers
+          - compression
+          - rate-limit-basic
+
+    # API chain (no compression for streaming)
+    api-standard:
+      chain:
+        middlewares:
+          - redirect-https
+          - secure-headers
+          - rate-limit-api
+          - cors-permissive
+
+    # Admin chain (whitelisted + auth)
+    admin-secure:
+      chain:
+        middlewares:
+          - redirect-https
+          - secure-headers
+          - whitelist-local
+          - rate-limit-strict
+          # - auth-basic

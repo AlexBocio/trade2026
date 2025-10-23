@@ -1,0 +1,146 @@
+# Phase 15.6: Traefik Reverse Proxy
+# CPGS v1.0 Compliance: ONLY service exposing ports 80/443
+#
+# Traefik is the single ingress point for all user-facing traffic
+# All HTTP/HTTPS requests route through Traefik to backend services
+# TLS termination, rate limiting, and security headers applied here
+
+version: "3.9"
+
+services:
+  # ============================================
+  # Traefik - Reverse Proxy (Apache-2.0 License)
+  # ============================================
+  traefik:
+    image: traefik:v3.0
+    container_name: trade2026-traefik
+
+    # CPGS COMPLIANCE: Only service allowed to expose 80/443
+    ports:
+      - "80:80"       # HTTP (redirects to HTTPS)
+      - "443:443"     # HTTPS (TLS termination)
+      - "8080:8080"   # Dashboard (dev only - remove in prod)
+      # - "8443:8443" # gRPC with TLS (optional)
+
+    command:
+      # Static configuration overrides (also in traefik.yml)
+      - "--api.dashboard=true"
+      - "--api.insecure=true"  # DEV ONLY - secure in prod
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=trade2026-frontend"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # - "--entrypoints.grpc.address=:8443"  # Uncomment for gRPC
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.addEntryPointsLabels=true"
+      - "--metrics.prometheus.addServicesLabels=true"
+
+    volumes:
+      # Static configuration
+      - ../traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+
+      # Dynamic configuration (middlewares, routers, TLS)
+      - ../traefik/dynamic:/etc/traefik/dynamic:ro
+
+      # TLS certificates (using existing traefik/certs directory)
+      - ../traefik/certs:/etc/traefik/certs:ro
+
+      # ACME storage for Let's Encrypt (prod)
+      - ../../data/traefik/acme:/etc/traefik/acme
+
+      # Access logs
+      - ../../logs/traefik:/var/log/traefik
+
+      # Docker socket (for auto-discovery)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    networks:
+      - frontend      # Only on frontend lane - reverse proxy pattern
+
+    environment:
+      - TZ=America/New_York
+      # Let's Encrypt email (prod)
+      # - TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=admin@trade2026.local
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    labels:
+      # Traefik dashboard via Traefik (meta)
+      - "traefik.enable=true"
+
+      # Dashboard router
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.local`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.middlewares=secure-headers"
+
+      # Prometheus metrics endpoint
+      - "traefik.http.routers.traefik-metrics.rule=Host(`traefik.local`) && PathPrefix(`/metrics`)"
+      - "traefik.http.routers.traefik-metrics.entrypoints=websecure"
+      - "traefik.http.routers.traefik-metrics.tls=true"
+      - "traefik.http.routers.traefik-metrics.service=prometheus@internal"
+
+      # Metadata
+      - "com.trade2026.service.name=traefik"
+      - "com.trade2026.service.role=reverse-proxy"
+      - "com.trade2026.cpgs.version=1.0"
+      - "com.trade2026.cpgs.compliant=true"
+      - "com.trade2026.network.lane=frontend"
+      - "com.trade2026.security.tls=true"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  frontend:
+    external: true
+    name: trade2026-frontend
+
+# ============================================
+# Traefik Configuration Reference
+# ============================================
+#
+# Static config:  /traefik/traefik.yml
+# Dynamic config: /traefik/dynamic/*.yml
+#   - middlewares.yml (redirect-https, secure-headers, rate-limit)
+#   - tls.yml (certificates, TLS options)
+#   - tcp.yml (gRPC TCP routers)
+#
+# Service labels:
+#   - traefik.enable=true
+#   - traefik.http.routers.<name>.rule=Host(`service.local`)
+#   - traefik.http.routers.<name>.entrypoints=websecure
+#   - traefik.http.routers.<name>.tls=true
+#   - traefik.http.routers.<name>.middlewares=redirect-https,secure-headers
+#   - traefik.http.services.<name>.loadbalancer.server.port=<port>
+#
+# Dashboard access (dev):
+#   http://localhost:8080/dashboard/
+#   https://traefik.local/dashboard/ (via reverse proxy)
+#
+# Metrics:
+#   https://traefik.local/metrics
+#
+# Access logs:
+#   /home/user/trading/logs/traefik/access.log
+#

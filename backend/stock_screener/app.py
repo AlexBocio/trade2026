@@ -2985,5 +2985,5 @@ def analyze_symbol_scenarios_endpoint():
 
 
 if __name__ == '__main__':
-    logger.info(f"Starting Stock Screener API v{API_VERSION} on port 5008")
-    app.run(host='0.0.0.0', port=5008, debug=False)
+    logger.info(f"Starting Stock Screener API v{API_VERSION} on port 5000 (external: 5008)")
+    app.run(host='0.0.0.0', port=5000, debug=False)
