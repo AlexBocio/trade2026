@@ -67,7 +67,9 @@
       "Bash(git commit:*)",
       "Bash(do echo -e \"\\n[Port $port]:\")",
       "Bash(timeout 2 curl:*)",
-      "Bash(timeout 30 bash:*)"
+      "Bash(timeout 30 bash:*)",
+      "Bash(do echo \"=== Testing /api/$service ===\" timeout 3 curl -s -X POST -H \"Content-Type: application/json\" -d '{}' \"http://localhost/api/$service/\")",
+      "Bash(timeout 3 curl:*)"
     ],
     "deny": [],
     "ask": []
