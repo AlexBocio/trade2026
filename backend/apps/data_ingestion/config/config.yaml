@@ -17,14 +17,44 @@ ibkr:
   host: "host.docker.internal"  # Docker -> Host networking
   port: 4002  # IB Gateway port (configured in Gateway settings)
   client_id: 10
-  reconnect_delay_seconds: 5
-  max_reconnect_attempts: 5
+  reconnect_delay_seconds: 10
+  max_reconnect_attempts: 999999  # Infinite reconnection (handles IB Gateway auto-shutdown)
 
   # Data subscriptions
   subscribe:
     level1: true
     level2: true  # Order book (10 levels)
     time_and_sales: true
+
+  # Timeframe Aggregation (from tick data)
+  # Used for different trading styles
+  timeframes:
+    # INTRADAY SWINGS (Scalping, Day Trading)
+    intraday:
+      - 1m   # 1 minute bars - scalping, very short-term
+      - 5m   # 5 minute bars - day trading, intraday patterns
+      - 15m  # 15 minute bars - intraday swings, momentum
+
+    # SHORT-TERM SWINGS (Swing Trading, Few Days to Weeks)
+    short_term:
+      - 30m  # 30 minute bars - short-term swings
+      - 1h   # 1 hour bars - hourly trends
+      - 4h   # 4 hour bars - intraday/multi-day patterns
+
+    # MEDIUM-TERM SWINGS (Weeks to Months)
+    medium_term:
+      - 1d   # Daily bars - swing trading, trend following
+      - 1w   # Weekly bars - weekly patterns, medium-term trends
+
+    # POSITIONAL TRADES (Months to Years)
+    positional:
+      - 1d   # Daily bars - position trading
+      - 1w   # Weekly bars - long-term trends
+      - 1mo  # Monthly bars - very long-term, institutional
+
+  # Enable aggregation (requires TimescaleDB or aggregation service)
+  enable_aggregation: true
+  aggregation_delay_seconds: 5  # Wait 5 seconds before closing a bar
 
   # ETF symbols for sector tracking
   sector_etfs:
