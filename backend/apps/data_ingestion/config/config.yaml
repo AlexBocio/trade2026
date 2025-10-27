@@ -12,10 +12,266 @@ service:
 nats_url: "nats://nats:4222"
 use_jetstream: true
 
+# Market Data Source Selection
+# Options: "alpaca" (FREE real-time, 30 symbol limit) or "ibkr" (unlimited symbols)
+market_data_source: "ibkr"
+
+# Symbols Configuration (shared by all market data sources)
+# Organized by tier for sector rotation analysis
+# NOTE: IBKR = UNLIMITED symbols (using paper trading account)
+symbols:
+  # TIER 1: Core Sector ETFs (SPDR X-Series - Macro Rotation Map) - 11 symbols
+  sector_etfs:
+    - XLK  # Technology
+    - XLV  # Healthcare
+    - XLF  # Financials
+    - XLY  # Consumer Discretionary
+    - XLI  # Industrials
+    - XLP  # Consumer Staples
+    - XLE  # Energy
+    - XLB  # Materials
+    - XLRE # Real Estate
+    - XLU  # Utilities
+    - XLC  # Communication Services
+
+  # TIER 1: Benchmarks - 4 symbols
+  benchmark_etfs:
+    - SPY  # S&P 500
+    - QQQ  # Nasdaq 100
+    - IWM  # Russell 2000
+    - DIA  # Dow Jones
+
+  # TIER 2: Sub-Sector / Industry ETFs (Early Sector Indicators) - ALL 23 symbols
+  subsector_etfs:
+    # Technology Sub-Sectors (XLK early indicators)
+    - SMH   # Semiconductors (leads tech by 2-4 weeks)
+    - SOXX  # Semiconductor Alt
+    - XSD   # Semiconductor Small-Cap
+
+    # Financials Sub-Sectors (XLF early indicators)
+    - KBE   # Banks
+    - KRE   # Regional Banks
+    - IYG   # Diversified Financials
+
+    # Consumer Discretionary Sub-Sectors (XLY early indicators)
+    - CARZ  # Autos
+    - ITB   # Homebuilders (housing sensitive)
+    - PEJ   # Leisure & Entertainment
+
+    # Industrials Sub-Sectors (XLI early indicators)
+    - ITA   # Aerospace & Defense
+    - IYT   # Transportation (Dow Theory confirmation)
+
+    # Energy Sub-Sectors (XLE early indicators)
+    - OIH   # Oil Services
+    - XOP   # Oil & Gas Exploration (high beta)
+
+    # Materials Sub-Sectors (XLB early indicators)
+    - SLX   # Steel
+    - COPX  # Copper Miners
+    - WOOD  # Timber
+
+    # Healthcare Sub-Sectors (XLV early indicators)
+    - IBB   # Biotech (risk appetite gauge)
+    - XPH   # Pharmaceuticals
+
+    # Communication Sub-Sectors (XLC early indicators)
+    - FDN   # Internet
+    - SOCL  # Social Media
+
+    # Utilities Sub-Sectors (XLU confirmation)
+    - PUI   # Power Utilities
+
+    # Real Estate Sub-Sectors (XLRE confirmation)
+    - IYR   # Real Estate Alt
+    - REZ   # Residential Real Estate
+
+  # TIER 3: Thematic / Innovation ETFs (Preemptive Rotation Signals) - 18 symbols
+  thematic_etfs:
+    # AI & Innovation (Tech/Discretionary momentum)
+    - ARKK  # ARK Innovation
+    - AIQ   # AI Powered Equity
+    - BOTZ  # Robotics & Automation
+
+    # Clean Energy (Energy/Industrials/Materials ESG proxy)
+    - ICLN  # Clean Energy
+    - TAN   # Solar Energy
+    - PBW   # Clean Energy Alt
+
+    # Cybersecurity (Tech defensive-growth theme)
+    - HACK  # Cybersecurity
+    - CIBR  # Cybersecurity Alt
+
+    # Cloud & Software (Tech margin expansion)
+    - CLOU  # Cloud Computing
+    - WCLD  # Cloud Computing Alt
+    - SKYY  # Cloud Computing 2
+
+    # Fintech (Financials digital proxy)
+    - FINX  # Fintech Innovation
+    - IPAY  # Mobile Payments
+
+    # Infrastructure (Industrials/Materials fiscal expansion)
+    - PAVE  # Infrastructure
+    - IFRA  # Infrastructure Alt
+
+    # Defense (Industrials geopolitical)
+    - DFEN  # Defense
+
+  # TIER 4: Commodities & Real Assets (Inflation Hedges) - 8 symbols
+  commodity_etfs:
+    # Broad Commodities
+    - DBC   # Commodities Broad Basket
+    - PICK  # Metals & Mining
+    - DBB   # Base Metals
+
+    # Precious Metals
+    - GLD   # Gold
+    - SLV   # Silver
+    - PPLT  # Platinum
+
+    # Real Estate (rate-sensitive real assets)
+    - VNQ   # Vanguard Real Estate
+    - REET  # Real Estate Alt
+
+  # TIER 5: Niche & Thematic ETFs (Early Signal Probes & Narrative Acceleration) - 107 symbols
+  niche_thematic_etfs:
+    # Technology & Innovation (Disruptive / AI / Cloud / Cyber)
+    - ARKW  # ARK Next Generation Internet
+    - ARKF  # ARK Fintech Innovation
+    - ROBO  # Robotics & Automation Alt
+    - KOMP  # Future Tech & Innovation
+    - XT    # Exponential Technologies
+    - SNSR  # Internet of Things
+    - DRIV  # Autonomous Vehicles
+    - IDRV  # Electric Vehicles Alt
+    - QCLN  # Clean Energy Alt
+    - LIT   # Lithium & Battery Tech
+    - BATT  # Battery Tech & Materials
+
+    # Sustainability, Climate & ESG
+    - ACES  # Clean Energy Alt 2
+    - GRID  # Smart Power Grids
+    - BUGZ  # Clean Energy Bugs
+    - CGW   # Water Resources
+    - FIW   # Water Alt
+    - KRBN  # Carbon Credits
+    - GRN   # Green Bonds
+    - CO2   # Carbon Offset
+    - SMOG  # Low-Carbon Energy
+    - RNRG  # Renewable Energy Alt
+
+    # Industrial, Materials & Commodities (Metals, Mining, Agri)
+    - REMX  # Rare Earth / Strategic Metals
+    - URA   # Uranium & Nuclear
+    - NLR   # Nuclear Energy
+    - URNM  # Uranium Miners
+    - CUT   # Timber & Forestry
+    - GDX   # Gold Miners
+    - GDXJ  # Junior Gold Miners
+    - SIL   # Silver Miners
+    - SILJ  # Junior Silver Miners
+    - PDBC  # Broad Commodities Alt
+    - WEAT  # Wheat
+    - CORN  # Corn
+    - SOYB  # Soybeans
+    - JJE   # Energy Commodities
+    - JO    # Coffee
+    - NIB   # Cocoa
+    - CANE  # Sugar
+    - IEO   # Oil & Gas Exploration Alt
+    - PSCE  # Energy Exploration Small Cap
+
+    # Financial & Alternative Assets (Cannabis, Crypto, REITs, Yield)
+    - KBWB  # Banks Alt
+    - MJ    # Cannabis
+    - MSOS  # US Cannabis
+    - YOLO  # Cannabis Alt
+    - PSY   # Psychedelics
+    - PSIL  # Psychedelics Alt
+    - SRVR  # Data Center REITs
+    - DATA  # Data Center Alt
+    - HOMZ  # Homebuilders Alt
+    - QYLD  # Covered Call Yield (QQQ)
+    - JEPI  # Equity Premium Income
+    - BITO  # Bitcoin Futures
+    - WGMI  # Crypto Alt
+    - BLOK  # Blockchain Infrastructure
+    - BKCH  # Blockchain Alt
+    - GFOF  # Digital Assets
+    - DEFI  # DeFi Infrastructure
+    - CRYP  # Crypto Alt 2
+    - NFTZ  # NFTs & Digital Collectibles
+    - SPCX  # SPACs
+
+    # Consumer, Lifestyle & Culture (Gaming, Travel, Vice, Pets)
+    - MILN  # Millennials
+    - GENY  # Gen Y Consumer
+    - AWAY  # Travel & Leisure
+    - USAI  # American Consumer
+    - BETZ  # Sports Betting & Gaming
+    - HERO  # Gaming & Esports
+    - NERD  # Gaming & Streaming
+    - ESPO  # Esports Alt
+    - VICE  # Vice Industries
+    - BETS  # Betting Alt
+    - EATZ  # Food & Beverage
+    - PBJ   # Food & Beverage Alt
+    - LUXE  # Luxury Goods
+    - BOSS  # Luxury Alt
+    - FNDX  # Fashion & Retail
+    - BFIT  # Health & Fitness
+    - EDOC  # Telemedicine
+    - WELL  # Healthcare Wellness
+    - PETZ  # Pet Care
+    - PAWZ  # Pet Care Alt
+
+    # Human Capital & Social / Demographic Themes
+    - SHE   # Gender Equality
+    - WOMN  # Women's Leadership
+    - HART  # Faith-Based Investing
+    - CATH  # Catholic Values
+    - EDUT  # Education Technology
+    - LRNZ  # Education Alt
+    - PINK  # Women's Healthcare
+    - CHNA  # Healthcare Alt
+    - BBSA  # Values-Based Alt
+    - BIBL  # Faith Values Alt
+    - YALL  # Southern Values
+
+    # Frontier / Geopolitical / Specialty (Space, Defense, Shipping)
+    - UFO   # Space Exploration
+    - ROKT  # Space Alt
+    - DEF   # Defense Alt
+    - XAR   # Aerospace & Defense Alt
+    - KSEA  # Global Shipping
+    - SEA   # Shipping Alt
+    - TOLZ  # Energy Infrastructure MLPs
+    - EMLP  # Energy MLPs Alt
+    - GLBL  # Global Themes
+    - KMED  # Emerging Markets Alt
+    - ISRA  # Israel
+    - TUR   # Turkey
+    - EPHE  # Philippines
+    - GOVZ  # Treasury Strips (Duration)
+    - SHYF  # Short Duration
+    - TIPZ  # TIPS (Inflation Protection)
+
+# Alpaca Configuration (FREE real-time market data)
+alpaca:
+  api_key_env: "ALPACA_API_KEY"
+  secret_key_env: "ALPACA_SECRET_KEY"
+  paper: true  # Paper trading account (free real-time data)
+  feed: "iex"  # Free IEX data feed
+
 # IBKR Configuration
+# NOTE: Paper trading accounts have a ~100-123 symbol subscription limit
+# See IBKR_SUBSCRIPTION_LIMIT_ANALYSIS.md for details
+# Current: 169 symbols configured, ~123 will subscribe (46 Tier 5 symbols fail)
+# Tiers 1-4 (62 symbols) fully operational, Tier 5 (107 symbols) partial coverage
 ibkr:
   host: "host.docker.internal"  # Docker -> Host networking
-  port: 4002  # IB Gateway port (configured in Gateway settings)
+  port: 7497  # IB Gateway PAPER TRADING port (4002 for live, 7497 for paper)
   client_id: 10
   reconnect_delay_seconds: 10
   max_reconnect_attempts: 999999  # Infinite reconnection (handles IB Gateway auto-shutdown)
@@ -23,8 +279,8 @@ ibkr:
   # Data subscriptions
   subscribe:
     level1: true
-    level2: true  # Order book (10 levels)
-    time_and_sales: true
+    level2: false  # Order book (10 levels) - REQUIRES PAID SUBSCRIPTION ($10-15/mo per exchange)
+    time_and_sales: false  # Time & Sales - REQUIRES PAID SUBSCRIPTION
 
   # Timeframe Aggregation (from tick data)
   # Used for different trading styles
@@ -55,26 +311,6 @@ ibkr:
   # Enable aggregation (requires TimescaleDB or aggregation service)
   enable_aggregation: true
   aggregation_delay_seconds: 5  # Wait 5 seconds before closing a bar
-
-  # ETF symbols for sector tracking
-  sector_etfs:
-    - XLK  # Technology
-    - XLV  # Healthcare
-    - XLF  # Financials
-    - XLY  # Consumer Discretionary
-    - XLI  # Industrials
-    - XLP  # Consumer Staples
-    - XLE  # Energy
-    - XLB  # Materials
-    - XLRE # Real Estate
-    - XLU  # Utilities
-    - XLC  # Communication Services
-
-  benchmark_etfs:
-    - SPY  # S&P 500
-    - QQQ  # Nasdaq 100
-    - IWM  # Russell 2000
-    - DIA  # Dow Jones
 
 # FRED API Configuration
 fred:

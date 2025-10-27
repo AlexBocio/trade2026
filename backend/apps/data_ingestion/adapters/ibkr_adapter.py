@@ -84,6 +84,7 @@ class IBKRAdapter:
 
         # Subscriptions tracking
         self.subscriptions: Dict[str, object] = {}
+        self.failed_subscriptions: List[str] = []  # Track symbols that failed to subscribe (Error 101)
 
     async def start(self):
         """Start the adapter (connect to IBKR and data stores)"""
@@ -151,6 +152,9 @@ class IBKRAdapter:
 
                     # Set market data type (1=live, 2=frozen, 3=delayed, 4=delayed frozen)
                     self.ib.reqMarketDataType(3)  # Use delayed market data
+
+                    # Set up error handler to track subscription failures (Error 101)
+                    self.ib.errorEvent += self._on_error
                     return
 
             except Exception as e:
@@ -184,7 +188,16 @@ class IBKRAdapter:
     def _connect_questdb(self):
         """Connect to QuestDB via HTTP"""
         try:
-            self.questdb_client = httpx.AsyncClient(timeout=10.0)
+            # Configure connection pool for high-frequency concurrent writes
+            # 62 symbols * 2 (concurrent requests) = 124 connections needed
+            limits = httpx.Limits(
+                max_connections=200,
+                max_keepalive_connections=100
+            )
+            self.questdb_client = httpx.AsyncClient(
+                timeout=30.0,  # Increased timeout for high load
+                limits=limits
+            )
             self.logger.info(f"Connected to QuestDB HTTP: {self.questdb_url}")
         except Exception as e:
             self.logger.error(f"Failed to connect to QuestDB: {e}")
@@ -205,6 +218,29 @@ class IBKRAdapter:
                 self.logger.error(f"Failed to subscribe to {symbol}: {e}")
                 # Continue with other symbols (fault isolation)
 
+        # Wait a moment for Error 101 messages to arrive
+        await asyncio.sleep(2)
+
+        # Log subscription summary
+        total = len(self.symbols)
+        successful = len(self.subscriptions)
+        failed = len(self.failed_subscriptions)
+        success_rate = (successful / total * 100) if total > 0 else 0
+
+        self.logger.info("=" * 80)
+        self.logger.info("IBKR SUBSCRIPTION SUMMARY")
+        self.logger.info("=" * 80)
+        self.logger.info(f"Total Requested: {total}")
+        self.logger.info(f"Successful: {successful} ({success_rate:.1f}%)")
+        self.logger.info(f"Failed (Error 101): {failed}")
+
+        if failed > 0:
+            self.logger.warning(f"Failed Symbols ({failed}): {', '.join(sorted(self.failed_subscriptions))}")
+            self.logger.warning(f"Note: IBKR paper trading has ~100-123 symbol limit")
+            self.logger.warning(f"See IBKR_SUBSCRIPTION_LIMIT_ANALYSIS.md for details")
+
+        self.logger.info("=" * 80)
+
     async def _subscribe_symbol(self, symbol: str):
         """Subscribe to Level 1, Level 2, and Time & Sales for a symbol"""
         if Stock is None:
@@ -222,7 +258,8 @@ class IBKRAdapter:
         )
 
         # Request Level 2 data (market depth, 10 levels)
-        self.ib.reqMktDepth(contract, numRows=10)
+        # DISABLED: ETFs don't support L2, and it requires paid subscriptions
+        # self.ib.reqMktDepth(contract, numRows=10)
 
         # Set up callbacks
         ticker.updateEvent += lambda t: asyncio.create_task(self._on_level1_update(symbol, t))
@@ -232,7 +269,7 @@ class IBKRAdapter:
             "contract": contract
         }
 
-        self.logger.info(f"Subscribed to {symbol} (Level 1, Level 2, Time & Sales)")
+        self.logger.info(f"Subscribed to {symbol} (Level 1 only - bid/ask/size)")
 
     async def _unsubscribe_all(self):
         """Unsubscribe from all market data"""
@@ -364,6 +401,17 @@ class IBKRAdapter:
         except Exception as e:
             self.logger.error(f"Failed to write {symbol} to Valkey: {e}")
 
+    # --- Error Handling ---
+
+    def _on_error(self, reqId, errorCode, errorString, contract):
+        """Handle IBKR errors, specifically tracking Error 101 (subscription limit)"""
+        # Error 101: Max number of tickers has been reached
+        if errorCode == 101 and contract:
+            symbol = contract.symbol if hasattr(contract, 'symbol') else 'Unknown'
+            if symbol not in self.failed_subscriptions:
+                self.failed_subscriptions.append(symbol)
+                self.logger.debug(f"Tracked subscription failure for {symbol} (Error 101)")
+
     # --- Health Check ---
 
     def is_healthy(self) -> bool:
@@ -377,14 +425,26 @@ class IBKRAdapter:
         )
 
     def get_status(self) -> dict:
-        """Get adapter status"""
+        """Get adapter status with comprehensive subscription information"""
+        total_requested = len(self.symbols)
+        successful = len(self.subscriptions)
+        failed = len(self.failed_subscriptions)
+
         return {
             "connected": self.connected,
             "ibkr_connected": self.ib.isConnected() if self.ib else False,
-            "subscriptions": len(self.subscriptions),
+            "subscriptions": {
+                "total_requested": total_requested,
+                "successful": successful,
+                "failed": failed,
+                "success_rate": f"{(successful/total_requested*100):.1f}%" if total_requested > 0 else "0%",
+                "subscribed_symbols": sorted(list(self.subscriptions.keys())),
+                "failed_symbols": sorted(self.failed_subscriptions)
+            },
             "reconnect_attempts": self.reconnect_attempts,
             "valkey_connected": self.valkey_client is not None,
-            "questdb_connected": self.questdb_client is not None
+            "questdb_connected": self.questdb_client is not None,
+            "note": "IBKR paper trading has ~100-123 symbol limit. See IBKR_SUBSCRIPTION_LIMIT_ANALYSIS.md"
         }
 
 
