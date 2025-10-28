@@ -24,6 +24,7 @@ import uvicorn
 # Import adapters
 from adapters.ibkr_adapter import create_ibkr_adapter, IBKRAdapter
 from adapters.alpaca_adapter import create_alpaca_adapter, AlpacaAdapter
+from adapters.yahoo_adapter import create_yahoo_adapter, YahooAdapter
 from adapters.fred_adapter import create_fred_adapter, FREDAdapter
 
 
@@ -56,6 +57,7 @@ class DataIngestionService:
         self.market_data_adapter: Optional[Union[IBKRAdapter, AlpacaAdapter]] = None  # Either IBKR or Alpaca
         self.ibkr_adapter: Optional[IBKRAdapter] = None  # Legacy reference (deprecated)
         self.alpaca_adapter: Optional[AlpacaAdapter] = None  # Legacy reference (deprecated)
+        self.yahoo_adapter: Optional[YahooAdapter] = None  # Hybrid solution for IBKR limit
         self.fred_adapter: Optional[FREDAdapter] = None
         # TODO: Add other adapters as they're implemented
         # self.crypto_adapter = None
@@ -81,9 +83,10 @@ class DataIngestionService:
 
             # Check adapter health
             market_data_healthy = self.market_data_adapter.is_healthy() if self.market_data_adapter else False
+            yahoo_healthy = self.yahoo_adapter.is_healthy() if self.yahoo_adapter else True  # Optional
             fred_healthy = self.fred_adapter.is_healthy() if self.fred_adapter else False
 
-            overall_healthy = market_data_healthy and fred_healthy
+            overall_healthy = market_data_healthy and fred_healthy and yahoo_healthy
 
             if not overall_healthy:
                 raise HTTPException(status_code=503, detail="One or more adapters unhealthy")
@@ -98,6 +101,7 @@ class DataIngestionService:
         async def status():
             """Detailed status endpoint"""
             market_data_status = self.market_data_adapter.get_status() if self.market_data_adapter else {"error": "not initialized"}
+            yahoo_status = self.yahoo_adapter.get_status() if self.yahoo_adapter else {"error": "not enabled"}
             fred_status = self.fred_adapter.get_status() if self.fred_adapter else {"error": "not initialized"}
 
             # Determine which market data source is being used
@@ -110,6 +114,7 @@ class DataIngestionService:
                 "market_data_source": market_data_source,
                 "adapters": {
                     "market_data": market_data_status,
+                    "yahoo": yahoo_status,
                     "fred": fred_status,
                     # Add other adapters as they're implemented
                     # "crypto": self.crypto_adapter.get_status() if self.crypto_adapter else {"error": "not implemented"},
@@ -380,6 +385,20 @@ class DataIngestionService:
                 await self.market_data_adapter.start()
                 logger.info("IBKR Adapter started successfully")
 
+                # Initialize Yahoo Finance Adapter (hybrid solution for IBKR subscription limit)
+                yahoo_config = self.config.get("yahoo", {})
+                if yahoo_config.get("enabled", False):
+                    yahoo_symbols = yahoo_config.get("symbols", [])
+                    if yahoo_symbols:
+                        logger.info(f"Starting Yahoo Finance Adapter for {len(yahoo_symbols)} symbols (IBKR overflow)...")
+                        self.yahoo_adapter = create_yahoo_adapter(yahoo_config, store_config, yahoo_symbols, logger)
+                        await self.yahoo_adapter.start()
+                        logger.info("Yahoo Finance Adapter started successfully")
+                    else:
+                        logger.info("Yahoo Finance enabled but no symbols configured")
+                else:
+                    logger.info("Yahoo Finance Adapter disabled in config")
+
             else:
                 raise ValueError(f"Invalid market_data_source: {market_data_source}. Must be 'alpaca' or 'ibkr'")
 
@@ -424,6 +443,14 @@ class DataIngestionService:
                 logger.info("Market Data Adapter stopped")
             except Exception as e:
                 logger.error(f"Error stopping Market Data Adapter: {e}")
+
+        # Stop Yahoo Finance Adapter
+        if self.yahoo_adapter:
+            try:
+                await self.yahoo_adapter.stop()
+                logger.info("Yahoo Finance Adapter stopped")
+            except Exception as e:
+                logger.error(f"Error stopping Yahoo Finance Adapter: {e}")
 
         # Stop FRED Adapter
         if self.fred_adapter:
