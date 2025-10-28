@@ -69,7 +69,18 @@
       "Bash(timeout 2 curl:*)",
       "Bash(timeout 30 bash:*)",
       "Bash(do echo \"=== Testing /api/$service ===\" timeout 3 curl -s -X POST -H \"Content-Type: application/json\" -d '{}' \"http://localhost/api/$service/\")",
-      "Bash(timeout 3 curl:*)"
+      "Bash(timeout 3 curl:*)",
+      "Bash(export ALPACA_API_KEY=\"PKKMFULLCKTGZL35DLVCXOFKQA\")",
+      "Bash(export ALPACA_SECRET_KEY:*)",
+      "Bash(set ALPACA_API_KEY=PKKMFULLCKTGZL35DLVCXOFKQA)",
+      "Bash(set ALPACA_SECRET_KEY=9MmocvpNkxwMMcwG5U35kDjnpMpeKbsbGiej87zTPvYk)",
+      "Bash(ALPACA_API_KEY=\"PKKMFULLCKTGZL35DLVCXOFKQA\" ALPACA_SECRET_KEY=\"9MmocvpNkxwMMcwG5U35kDjnpMpeKbsbGiej87zTPvYk\" docker-compose:*)",
+      "Bash(docker run:*)",
+      "Bash(docker rmi:*)",
+      "Bash(docker builder prune:*)",
+      "WebFetch(domain:alpaca.markets)",
+      "Bash(while read key)",
+      "Bash(do echo \"Key: $key\")"
     ],
     "deny": [],
     "ask": []

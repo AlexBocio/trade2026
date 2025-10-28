@@ -14,7 +14,7 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import yaml
 from fastapi import FastAPI, HTTPException
@@ -23,6 +23,7 @@ import uvicorn
 
 # Import adapters
 from adapters.ibkr_adapter import create_ibkr_adapter, IBKRAdapter
+from adapters.alpaca_adapter import create_alpaca_adapter, AlpacaAdapter
 from adapters.fred_adapter import create_fred_adapter, FREDAdapter
 
 
@@ -39,11 +40,11 @@ class DataIngestionService:
     Main service orchestrator for data ingestion
 
     Manages lifecycle of all data adapters:
-    - IBKR Adapter (Level 1, Level 2, Time & Sales)
-    - FRED Adapter (economic indicators) - TODO Week 1 Day 3
-    - Crypto Adapter (Binance, Fear & Greed) - TODO Week 1 Day 4
-    - ETF Adapter (sector/benchmark tracking) - TODO Week 1 Day 5
-    - Breadth Calculator (A-D ratio, new H-L) - TODO Week 1 Day 6
+    - Market Data: IBKR (requires subscriptions) or Alpaca (FREE)
+    - FRED Adapter (economic indicators)
+    - Crypto Adapter (Binance, Fear & Greed) - TODO
+    - ETF Adapter (sector/benchmark tracking) - TODO
+    - Breadth Calculator (A-D ratio, new H-L) - TODO
     """
 
     def __init__(self, config_path: str = "config/config.yaml"):
@@ -52,7 +53,9 @@ class DataIngestionService:
         self.running = False
 
         # Adapters
-        self.ibkr_adapter: Optional[IBKRAdapter] = None
+        self.market_data_adapter: Optional[Union[IBKRAdapter, AlpacaAdapter]] = None  # Either IBKR or Alpaca
+        self.ibkr_adapter: Optional[IBKRAdapter] = None  # Legacy reference (deprecated)
+        self.alpaca_adapter: Optional[AlpacaAdapter] = None  # Legacy reference (deprecated)
         self.fred_adapter: Optional[FREDAdapter] = None
         # TODO: Add other adapters as they're implemented
         # self.crypto_adapter = None
@@ -77,10 +80,10 @@ class DataIngestionService:
                 raise HTTPException(status_code=503, detail="Service not running")
 
             # Check adapter health
-            ibkr_healthy = self.ibkr_adapter.is_healthy() if self.ibkr_adapter else False
+            market_data_healthy = self.market_data_adapter.is_healthy() if self.market_data_adapter else False
             fred_healthy = self.fred_adapter.is_healthy() if self.fred_adapter else False
 
-            overall_healthy = ibkr_healthy and fred_healthy
+            overall_healthy = market_data_healthy and fred_healthy
 
             if not overall_healthy:
                 raise HTTPException(status_code=503, detail="One or more adapters unhealthy")
@@ -94,15 +97,19 @@ class DataIngestionService:
         @self.app.get("/status")
         async def status():
             """Detailed status endpoint"""
-            ibkr_status = self.ibkr_adapter.get_status() if self.ibkr_adapter else {"error": "not initialized"}
+            market_data_status = self.market_data_adapter.get_status() if self.market_data_adapter else {"error": "not initialized"}
             fred_status = self.fred_adapter.get_status() if self.fred_adapter else {"error": "not initialized"}
+
+            # Determine which market data source is being used
+            market_data_source = self.config.get("market_data_source", "unknown") if self.config else "unknown"
 
             return {
                 "service": "data-ingestion",
                 "version": "1.0.0",
                 "running": self.running,
+                "market_data_source": market_data_source,
                 "adapters": {
-                    "ibkr": ibkr_status,
+                    "market_data": market_data_status,
                     "fred": fred_status,
                     # Add other adapters as they're implemented
                     # "crypto": self.crypto_adapter.get_status() if self.crypto_adapter else {"error": "not implemented"},
@@ -126,13 +133,13 @@ class DataIngestionService:
 
         @self.app.get("/api/market-data")
         async def get_market_data():
-            """Get latest IBKR market data from Valkey cache"""
-            if not self.ibkr_adapter or not self.ibkr_adapter.valkey_client:
-                raise HTTPException(status_code=503, detail="IBKR adapter not ready")
+            """Get latest market data from Valkey cache"""
+            if not self.market_data_adapter or not self.market_data_adapter.valkey_client:
+                raise HTTPException(status_code=503, detail="Market data adapter not ready")
 
             try:
                 # Get all market:l1:* keys from Valkey (async client)
-                keys = await self.ibkr_adapter.valkey_client.keys("market:l1:*")
+                keys = await self.market_data_adapter.valkey_client.keys("market:l1:*")
 
                 if not keys:
                     return []
@@ -141,7 +148,7 @@ class DataIngestionService:
                 import json
                 market_data = []
                 for key in keys:
-                    data_str = await self.ibkr_adapter.valkey_client.get(key)
+                    data_str = await self.market_data_adapter.valkey_client.get(key)
                     if data_str:
                         data = json.loads(data_str)
                         market_data.append(data)
@@ -180,6 +187,108 @@ class DataIngestionService:
                 logger.error(f"Failed to fetch economic indicators: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
+        @self.app.get("/api/bars")
+        async def get_bars(
+            symbol: str,
+            timeframe: str = "5m",
+            lookback: str = "7d"
+        ):
+            """
+            Get OHLCV bars aggregated from tick data using QuestDB SAMPLE BY
+
+            Args:
+                symbol: Stock symbol (e.g., SPY, QQQ)
+                timeframe: Bar timeframe - 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M (default: 5m)
+                lookback: How far back to query - 1h, 6h, 1d, 7d, 30d, 90d, 1y, 3y (default: 7d)
+
+            Returns:
+                List of OHLCV bars: [{"timestamp": ..., "open": ..., "high": ..., "low": ..., "close": ..., "volume": ...}]
+
+            Example:
+                GET /api/bars?symbol=SPY&timeframe=5m&lookback=1d
+            """
+            import httpx
+
+            # Validate timeframe
+            valid_timeframes = {"1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
+                               "1h": "1h", "4h": "4h", "1d": "1d", "1w": "1w", "1M": "1M"}
+            if timeframe not in valid_timeframes:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid timeframe. Must be one of: {', '.join(valid_timeframes.keys())}"
+                )
+
+            # Validate lookback
+            valid_lookbacks = {"1h": "1h", "6h": "6h", "1d": "1d", "7d": "7d", "30d": "30d", "90d": "90d", "1y": "1y", "3y": "3y"}
+            if lookback not in valid_lookbacks:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid lookback. Must be one of: {', '.join(valid_lookbacks.keys())}"
+                )
+
+            try:
+                # Build QuestDB SAMPLE BY query
+                # Convert lookback to QuestDB dateadd format
+                lookback_map = {
+                    "1h": ("'h'", 1),
+                    "6h": ("'h'", 6),
+                    "1d": ("'d'", 1),
+                    "7d": ("'d'", 7),
+                    "30d": ("'d'", 30),
+                    "90d": ("'d'", 90),
+                    "1y": ("'y'", 1),
+                    "3y": ("'y'", 3)
+                }
+                period_type, period_count = lookback_map[lookback]
+
+                query = f"""
+                SELECT
+                    timestamp,
+                    first(last) as open,
+                    max(last) as high,
+                    min(last) as low,
+                    last(last) as close,
+                    sum(bid_size + ask_size) as volume
+                FROM market_data_l1
+                WHERE symbol = '{symbol}'
+                    AND timestamp > dateadd({period_type}, -{period_count}, now())
+                SAMPLE BY {timeframe} ALIGN TO CALENDAR
+                """
+
+                # Query QuestDB
+                questdb_url = self.config["stores"]["questdb"]["url"]
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(
+                        f"{questdb_url}/exec",
+                        params={"query": query}
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+
+                # Transform QuestDB response to OHLCV format
+                if "dataset" not in result or not result["dataset"]:
+                    return []
+
+                bars = []
+                for row in result["dataset"]:
+                    bars.append({
+                        "timestamp": row[0],
+                        "open": float(row[1]) if row[1] is not None else None,
+                        "high": float(row[2]) if row[2] is not None else None,
+                        "low": float(row[3]) if row[3] is not None else None,
+                        "close": float(row[4]) if row[4] is not None else None,
+                        "volume": int(row[5]) if row[5] is not None else 0
+                    })
+
+                return bars
+
+            except httpx.HTTPStatusError as e:
+                logger.error(f"QuestDB query failed: {e.response.text}")
+                raise HTTPException(status_code=500, detail=f"QuestDB error: {e.response.text}")
+            except Exception as e:
+                logger.error(f"Failed to fetch bars: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
     def load_config(self):
         """Load configuration from YAML file"""
         try:
@@ -197,48 +306,85 @@ class DataIngestionService:
         # Load configuration
         self.load_config()
 
-        # Get symbols from config
+        # Get symbols from config (all tiers for sector rotation analysis)
+        symbols_config = self.config.get("symbols", {})
         symbols = (
-            self.config.get("ibkr", {}).get("sector_etfs", []) +
-            self.config.get("ibkr", {}).get("benchmark_etfs", [])
+            symbols_config.get("sector_etfs", []) +           # Tier 1: Core sectors
+            symbols_config.get("benchmark_etfs", []) +         # Benchmarks
+            symbols_config.get("subsector_etfs", []) +         # Tier 2: Sub-sectors
+            symbols_config.get("thematic_etfs", []) +          # Tier 3: Thematic
+            symbols_config.get("commodity_etfs", []) +         # Tier 4: Commodities
+            symbols_config.get("niche_thematic_etfs", [])      # Tier 5: Niche & Thematic
         )
 
         if not symbols:
             logger.warning("No symbols configured, using defaults")
             symbols = ["SPY", "QQQ", "IWM"]
 
-        logger.info(f"Subscribing to {len(symbols)} symbols: {symbols}")
+        logger.info(f"Subscribing to {len(symbols)} symbols across all tiers")
+        logger.info(f"Tier 1 (Core Sectors): {len(symbols_config.get('sector_etfs', []))} symbols")
+        logger.info(f"Tier 1 (Benchmarks): {len(symbols_config.get('benchmark_etfs', []))} symbols")
+        logger.info(f"Tier 2 (Sub-Sectors): {len(symbols_config.get('subsector_etfs', []))} symbols")
+        logger.info(f"Tier 3 (Thematic): {len(symbols_config.get('thematic_etfs', []))} symbols")
+        logger.info(f"Tier 4 (Commodities): {len(symbols_config.get('commodity_etfs', []))} symbols")
+        logger.info(f"Tier 5 (Niche & Thematic): {len(symbols_config.get('niche_thematic_etfs', []))} symbols")
 
-        # Initialize IBKR Adapter
+        # Determine which market data source to use
+        market_data_source = self.config.get("market_data_source", "alpaca")
+        logger.info(f"Market data source: {market_data_source}")
+
+        # Store configuration (shared by both adapters)
+        store_config = {
+            "questdb_http_host": self.config["stores"]["questdb"]["ilp_host"],
+            "questdb_http_port": 9000,  # HTTP endpoint
+            "valkey_host": self.config["stores"]["valkey"]["host"],
+            "valkey_port": self.config["stores"]["valkey"]["port"],
+            "valkey_ttl_seconds": self.config["stores"]["valkey"].get("ttl_seconds", 300)
+        }
+
+        # Initialize Market Data Adapter (IBKR or Alpaca)
         try:
-            ibkr_config = {
-                "host": self.config["ibkr"]["host"],
-                "port": self.config["ibkr"]["port"],
-                "client_id": self.config["ibkr"]["client_id"],
-                "reconnect_delay_seconds": self.config["ibkr"].get("reconnect_delay_seconds", 5),
-                "max_reconnect_attempts": self.config["ibkr"].get("max_reconnect_attempts", 5)
-            }
+            if market_data_source == "alpaca":
+                # Initialize Alpaca Adapter
+                alpaca_config = self.config.get("alpaca", {})
 
-            store_config = {
-                "questdb_ilp_host": self.config["stores"]["questdb"]["ilp_host"],
-                "questdb_ilp_port": self.config["stores"]["questdb"]["ilp_port"],
-                "valkey_host": self.config["stores"]["valkey"]["host"],
-                "valkey_port": self.config["stores"]["valkey"]["port"],
-                "valkey_ttl_seconds": self.config["stores"]["valkey"].get("ttl_seconds", 300)
-            }
+                self.market_data_adapter = create_alpaca_adapter(
+                    alpaca_config,
+                    store_config,
+                    symbols,
+                    logger
+                )
+                self.alpaca_adapter = self.market_data_adapter  # Legacy reference
 
-            self.ibkr_adapter = create_ibkr_adapter(
-                ibkr_config,
-                store_config,
-                symbols,
-                logger
-            )
+                await self.market_data_adapter.start()
+                logger.info("Alpaca Adapter started successfully")
 
-            await self.ibkr_adapter.start()
-            logger.info("IBKR Adapter started successfully")
+            elif market_data_source == "ibkr":
+                # Initialize IBKR Adapter
+                ibkr_config = {
+                    "host": self.config["ibkr"]["host"],
+                    "port": self.config["ibkr"]["port"],
+                    "client_id": self.config["ibkr"]["client_id"],
+                    "reconnect_delay_seconds": self.config["ibkr"].get("reconnect_delay_seconds", 5),
+                    "max_reconnect_attempts": self.config["ibkr"].get("max_reconnect_attempts", 5)
+                }
+
+                self.market_data_adapter = create_ibkr_adapter(
+                    ibkr_config,
+                    store_config,
+                    symbols,
+                    logger
+                )
+                self.ibkr_adapter = self.market_data_adapter  # Legacy reference
+
+                await self.market_data_adapter.start()
+                logger.info("IBKR Adapter started successfully")
+
+            else:
+                raise ValueError(f"Invalid market_data_source: {market_data_source}. Must be 'alpaca' or 'ibkr'")
 
         except Exception as e:
-            logger.error(f"Failed to start IBKR Adapter: {e}")
+            logger.error(f"Failed to start market data adapter ({market_data_source}): {e}")
             raise
 
         # Initialize FRED Adapter
@@ -271,13 +417,13 @@ class DataIngestionService:
 
         self.running = False
 
-        # Stop IBKR Adapter
-        if self.ibkr_adapter:
+        # Stop Market Data Adapter (IBKR or Alpaca)
+        if self.market_data_adapter:
             try:
-                await self.ibkr_adapter.stop()
-                logger.info("IBKR Adapter stopped")
+                await self.market_data_adapter.stop()
+                logger.info("Market Data Adapter stopped")
             except Exception as e:
-                logger.error(f"Error stopping IBKR Adapter: {e}")
+                logger.error(f"Error stopping Market Data Adapter: {e}")
 
         # Stop FRED Adapter
         if self.fred_adapter:

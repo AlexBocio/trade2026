@@ -383,3 +383,61 @@ logging:
 health_check:
   enabled: true
   interval_seconds: 30
+
+# Yahoo Finance Configuration (Hybrid Solution for IBKR Limit)
+# Handles 46 Tier 5 symbols that exceeded IBKR paper trading subscription limit
+yahoo:
+  enabled: true
+  poll_interval_seconds: 5  # Poll every 5 seconds (Yahoo has no strict rate limits for basic quotes)
+  max_retries: 3
+  timeout_seconds: 10
+
+  # Symbols to fetch from Yahoo (those that failed IBKR Error 101)
+  # These are the 46 Tier 5 symbols that exceeded IBKR paper trading limit
+  symbols:
+    - AWAY   # Travel & Leisure
+    - BETZ   # Sports Betting & Gaming
+    - BIBL   # Faith Values Alt
+    - BITO   # Bitcoin Futures
+    - BKCH   # Blockchain Alt
+    - BLOK   # Blockchain Infrastructure
+    - CATH   # Catholic Values
+    - DEFI   # DeFi Infrastructure
+    - EATZ   # Food & Beverage
+    - EMLP   # Energy MLPs Alt
+    - EPHE   # Philippines
+    - ESPO   # Esports Alt
+    - FNDX   # Fashion & Retail
+    - GLBL   # Global Themes
+    - GOVZ   # Treasury Strips (Duration)
+    - HERO   # Gaming & Esports
+    - HOMZ   # Homebuilders Alt
+    - ISRA   # Israel
+    - JEPI   # Equity Premium Income
+    - LRNZ   # Education Alt
+    - LUXE   # Luxury Goods
+    - MILN   # Millennials
+    - NERD   # Gaming & Streaming
+    - PAWZ   # Pet Care Alt
+    - PBJ    # Food & Beverage Alt
+    - PETZ   # Pet Care
+    - PINK   # Women's Healthcare
+    - PSIL   # Psychedelics Alt
+    - QYLD   # Covered Call Yield (QQQ)
+    - ROKT   # Space Alt
+    - SEA    # Shipping Alt
+    - SHE    # Gender Equality
+    - SPCX   # SPACs
+    - SRVR   # Data Center REITs
+    - TIPZ   # TIPS (Inflation Protection)
+    - TOLZ   # Energy Infrastructure MLPs
+    - TUR    # Turkey
+    - UFO    # Space Exploration
+    - USAI   # American Consumer
+    - VICE   # Vice Industries
+    - WELL   # Healthcare Wellness
+    - WGMI   # Crypto Alt
+    - WOMN   # Women's Leadership
+    - XAR    # Aerospace & Defense Alt
+    - YALL   # Southern Values
+    - YOLO   # Cannabis Alt

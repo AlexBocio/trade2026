@@ -1,7 +1,11 @@
 # Data Ingestion Service - Phase 6 Dependencies
 
+# Market Data Sources
 # IBKR connectivity
 ib-insync==0.9.86
+
+# Alpaca connectivity (FREE real-time data)
+alpaca-py>=0.20.0
 
 # Async support
 aiohttp==3.9.1
@@ -42,3 +46,4 @@ httpx==0.25.2
 
 # JSON parsing
 orjson==3.9.10
+yfinance>=0.2.40
